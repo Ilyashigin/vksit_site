@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Добавить мероприятие для работника</h1>
+<div class="col-6">
+  <form method="post" action="{{ url_for('students_edit', id= student.id) }}">
+    <div class="mb-3">
+      <label for="meropriyatie" class="form-label">Мероприятие</label>
+      <input type="text" class="form-control" id="meropriyatie" name="meropriyatie" value="{{ student.meropriyatie }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="uroven" class="form-label">Уровень</label>
+      <input type="text" class="form-control" id="uroven" name="uroven" value="{{ student.uroven }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="sroki_provedeniya" class="form-label">Сроки проведения</label>
+      <input type="text" class="form-control" id="sroki_provedeniya" name="sroki_provedeniya" value="{{ student.sroki_provedeniya }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="rezultat" class="form-label">Результат</label>
+      <input type="text" class="form-control" id="rezultat" name="rezultat" value="{{ student.rezultat }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="fio" class="form-label">ФИО</label>
+      <input type="text" class="form-control" id="fio" name="fio" value="{{ student.fio }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="diplomi" class="form-label">Дипломы</label>
+      <input type="text" class="form-control" id="diplomi" name="diplomi" value="{{ student.diplomi }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="nagradi" class="form-label">Награды</label>
+      <input type="text" class="form-control" id="nagradi" name="nagradi" value="{{ student.nagradi }}" required>
+    </div>
+    <div class="mb-3">
+      <label for="fio_nastavnika" class="form-label">ФИО наставника/преподавателя</label>
+      <input type="text" class="form-control" id="fio_nastavnika" name="fio_nastavnika" value="{{ student.fio_nastavnika }}" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </form>
+</div>
+{% endblock %}

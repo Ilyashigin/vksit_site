@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Пед. работники</h1>
+<a href="{{ url_for ('ped_rab_add') }}" class="btn btn-primary">Добавить мероприятие</a>
+<a href="{{ url_for ('ped_rab_download') }}" class="btn btn-primary">Скачать отчет</a>
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>№</th>
+        <th>Мероприятие</th>
+        <th>Уровень</th>
+        <th>Сроки проведения</th>
+        <th>Результаты</th>
+        <th>ФИО</th>
+        <th>Дипломы</th>
+        <th>Награды</th>
+
+
+    </tr>
+    </thead>
+    <tbody>
+    {% for rab in rabotniki %}
+    <tr>
+        <td> {{ rab.id }} </td>
+        <td> {{ rab.meropriyatie }} </td>
+        <td> {{ rab.uroven }} </td>
+        <td> {{ rab.sroki_provedeniya }} </td>
+        <td> {{ rab.rezultat }} </td>
+        <td> {{ rab.fio }} </td>
+        <td> {{ rab.diplomi }} </td>
+        <td> {{ rab.nagradi }} </td>
+        <td>
+            <a href="{{ url_for('ped_rab_edit', id= rab.id) }}" class="btn btn-sm btn-warning mx-1">Редактировать</a>
+            <form method="post" style="display: inline" action="{{ url_for ('ped_rab_del', id= rab.id) }}">
+                <button type="submit" class="btn btn-sm btn-danger mx-1">Удалить</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+
+
+</table>
+
+{% endblock %}
