@@ -1,24 +1,40 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import backref, lazyload
 
 db = SQLAlchemy()
 
-class Rabotnik(db.Model):
-    id = db.Column(db.Integer, primary_key = True)
-    meropriyatie = db.Column(db.String(200), nullable=False)
-    uroven = db.Column(db.String(100), nullable=False)
-    sroki_provedeniya = db.Column(db.String(50), nullable=False)
-    rezultat = db.Column(db.String(50), nullable=False)
-    fio = db.Column(db.String(250), nullable=False)
-    diplomi = db.Column(db.String(250), nullable=False)
-    nagradi = db.Column(db.String(250), nullable=False)
 
-class Student(db.Model):
+
+class Ucastie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    rezultat = db.Column(db.String(300), nullable=False)
+
+    id_meropriyatie = db.Column(db.Integer, db.ForeignKey('meropriyatie.id'), nullable=False)
+
+    id_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    id_user_null = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    user = db.relationship('User', foreign_keys=[id_user], backref='ucastie_main')
+    user_null = db.relationship('User', foreign_keys=[id_user_null], backref='ucastie_optional')
+
+
+class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
-    meropriyatie = db.Column(db.String(200), nullable=False)
-    uroven = db.Column(db.String(100), nullable=False)
-    sroki_provedeniya = db.Column(db.String(50), nullable=False)
-    rezultat = db.Column(db.String(50), nullable=False)
     fio = db.Column(db.String(250), nullable=False)
-    diplomi = db.Column(db.String(250), nullable=False)
-    nagradi = db.Column(db.String(250), nullable=False)
-    fio_nastavnika = db.Column(db.String(250), nullable=False)
+    group = db.Column(db.String(50), nullable=True)
+
+
+class Meropriyatie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(300), nullable=False)
+    date = db.Column(db.String(150), nullable=False)
+
+    id_uroven = db.Column(db.Integer, db.ForeignKey('uroven.id'), nullable=False)
+
+    ucastie = db.relationship('Ucastie', backref='meropriyatie', lazy=True)
+
+class Uroven(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    uroven_name = db.Column(db.String(100), nullable=False)
+
+    meropriyatie = db.relationship('Meropriyatie', backref='uroven', lazy=True)

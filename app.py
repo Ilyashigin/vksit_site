@@ -1,7 +1,7 @@
-from venv import create
+
 
 from flask import Flask, render_template, request, redirect
-from models import Rabotnik, Student, db
+from models import *
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///uchet_meropriyatiy.db'
@@ -14,8 +14,8 @@ def index():
 
 @app.route('/rabotniki')
 def ped_rab():
-    rabotniki = Rabotnik.query.all()
-    return render_template('ped_rab.html', rabotniki = rabotniki)
+    uchastiya = Ucastie.query.all()
+    return render_template('ped_rab.html', uchastiya = uchastiya)
 
 @app.route('/rabotniki/add', methods=['GET','POST'])
 def ped_rab_add():
@@ -27,8 +27,21 @@ def ped_rab_add():
         fio = request.form['fio']
         diplomi = request.form['diplomi']
         nagradi =request.form['nagradi']
-        rabotnik =Rabotnik(meropriyatie=meropriyatie, uroven=uroven, sroki_provedeniya=sroki_provedeniya, rezultat=rezultat, fio=fio, diplomi=diplomi, nagradi=nagradi)
-        db.session.add(rabotnik)
+
+        ur = Uroven(uroven_name=uroven)
+        db.session.add(ur)
+        db.session.commit()
+
+        us = User(fio=fio)
+        db.session.add(us)
+        db.session.commit()
+
+        mer = Meropriyatie(name=meropriyatie, date=sroki_provedeniya, uroven=ur)
+        db.session.add(mer)
+        db.session.commit()
+
+        uchastie = Ucastie(rezultat=f"{rezultat}, {diplomi}, {nagradi}", meropriyatie=mer, user=us)
+        db.session.add(uchastie)
         db.session.commit()
         return redirect('/rabotniki')
     return render_template('ped_rab_add.html')
@@ -36,28 +49,29 @@ def ped_rab_add():
 
 @app.route('/rabotniki/edit/<int:id>', methods=['GET','POST'])
 def ped_rab_edit(id):
-    rabotnik =Rabotnik.query.get_or_404(id)
+    uchastiya =Ucastie.query.get_or_404(id)
     if request.method == 'POST':
-        rabotnik.meropriyatie = request.form['meropriyatie']
-        rabotnik.uroven = request.form['uroven']
-        rabotnik.sroki_provedeniya = request.form['sroki_provedeniya']
-        rabotnik.rezultat = request.form['rezultat']
-        rabotnik.fio = request.form['fio']
-        rabotnik.diplomi = request.form['diplomi']
-        rabotnik.nagradi = request.form['nagradi']
+        uchastiya.meropriyatie.name = request.form['meropriyatie']
+        uchastiya.meropriyatie.uroven.uroven_name = request.form['uroven']
+        uchastiya.meropriyatie.date = request.form['sroki_provedeniya']
+        rezultat = request.form['rezultat']
+        diplomi = request.form['diplomi']
+        nagradi = request.form['nagradi']
+        uchastiya.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
+        uchastiya.user.fio = request.form['fio']
         db.session.commit()
         return redirect('/rabotniki')
-    return render_template('ped_rab_edit.html', rabotnik=rabotnik)
+    return render_template('ped_rab_edit.html', uchastiya=uchastiya)
 
 
 @app.route('/rabotniki/delete/<int:id>', methods=['POST'])
 def ped_rab_del(id):
-    rabotnik =Rabotnik.query.get_or_404(id)
-    db.session.delete(rabotnik)
+    uchastiya =Ucastie.query.get_or_404(id)
+    db.session.delete(uchastiya)
     db.session.commit()
     return redirect('/')
 
-
+'''
 #############СТУДЕНТЫ№№№№№№№№№№№№№№№№№№№№№№№№
 
 @app.route('/students')
@@ -119,4 +133,4 @@ def ped_rab_download():
             file.write(f"№ { rab.id } Мероприятие: { rab.meropriyatie } Уровень: { rab.uroven } Сроки проведения: { rab.sroki_provedeniya } Результаты: { rab.rezultat } ФИО: { rab.fio } Дипломы: { rab.diplomi } Награды: { rab.nagradi }\n" )
 
     print("Файл записан")
-    return redirect('/rabotniki')
+    return redirect('/rabotniki')'''
