@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Добавить преподавателя</h1>
+<div class="col-6">
+  <form method="post" action="{{ url_for('user_ped_add') }}">
+    <div class="mb-3">
+      <label for="fio" class="form-label">ФИО</label>
+      <input type="text" class="form-control" id="fio" name="fio" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+  </form>
+</div>
+{% endblock %}

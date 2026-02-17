@@ -19,8 +19,9 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
         <a class="navbar-brand" href="/">Учёт участия пед работников</a>
+        <a class="btn btn-info" href="{{ url_for ('users') }}">Все участники</a>
         <a class="btn btn-info" href="{{ url_for ('ped_rab') }}">Работники</a>
-        <a class="btn btn-info" href="#">Студенты</a>
+        <a class="btn btn-info" href="{{ url_for ('students') }}">Студенты</a>
     </div>
 
 </nav>

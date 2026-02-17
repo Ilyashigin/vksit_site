@@ -17,6 +17,7 @@
     </thead>
     <tbody>
     {% for uchastie in uchastiya %}
+    {% if not uchastie.user_null %}
     <tr>
         <td> {{ uchastie.id }} </td>
         <td> {{ uchastie.meropriyatie.name }} </td>
@@ -30,6 +31,7 @@
             </form>
         </td>
     </tr>
+    {% endif %}
     {% endfor %}
     </tbody>
 
