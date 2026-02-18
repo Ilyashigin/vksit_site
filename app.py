@@ -1,5 +1,6 @@
+from tokenize import group
 
-
+import flask
 from flask import Flask, render_template, request, redirect
 from models import *
 
@@ -28,13 +29,25 @@ def ped_rab_add():
         diplomi = request.form['diplomi']
         nagradi =request.form['nagradi']
 
+
         ur = Uroven(uroven_name=uroven)
-        db.session.add(ur)
-        db.session.commit()
+        existing = Uroven.query.filter_by(uroven_name=uroven).first()
+        if not existing:
+            db.session.add(ur)
+            db.session.commit()
+            print("Комит уровень")
+        else:
+            print("Уже есть:", existing.uroven_name)
+
 
         us = User(fio=fio)
-        db.session.add(us)
-        db.session.commit()
+        existing = User.query.filter_by(fio=fio).first()
+        if not existing:
+            db.session.add(us)
+            db.session.commit()
+            print("Комит юзера")
+        else:
+            print("Уже есть:", existing.fio)
 
         mer = Meropriyatie(name=meropriyatie, date=sroki_provedeniya, uroven=ur)
         db.session.add(mer)
@@ -71,13 +84,13 @@ def ped_rab_del(id):
     db.session.commit()
     return redirect('/')
 
-'''
+
 #############СТУДЕНТЫ№№№№№№№№№№№№№№№№№№№№№№№№
 
 @app.route('/students')
 def students():
-    students = Student.query.all()
-    return render_template('students.html', students = students)
+    uchastiya = Ucastie.query.all()
+    return render_template('students.html', uchastiya = uchastiya)
 
 @app.route('/students/add', methods=['GET','POST'])
 def students_add():
@@ -88,10 +101,44 @@ def students_add():
         rezultat = request.form['rezultat']
         fio = request.form['fio']
         diplomi = request.form['diplomi']
-        nagradi =request.form['nagradi']
-        fio_nastavnika =request.form['fio_nastavnika']
-        student =Student(meropriyatie=meropriyatie, uroven=uroven, sroki_provedeniya=sroki_provedeniya, rezultat=rezultat, fio=fio, diplomi=diplomi, nagradi=nagradi, fio_nastavnika=fio_nastavnika)
-        db.session.add(student)
+        nagradi = request.form['nagradi']
+        group = request.form['group']
+        fio_nastavnika = request.form['fio_nastavnika']
+
+        ur = Uroven(uroven_name=uroven)
+        existing = Uroven.query.filter_by(uroven_name=uroven).first()
+        if not existing:
+            db.session.add(ur)
+            db.session.commit()
+            print("Комит уровень")
+        else:
+            print("Уже есть:", existing.uroven_name)
+
+        us = User(fio=fio, group=group)
+        existing = User.query.filter_by(fio=fio).first()
+        if not existing:
+            db.session.add(us)
+            db.session.commit()
+            print("Комит юзера")
+        else:
+            print("Уже есть:", existing.fio)
+
+        us_null = User(fio=fio_nastavnika)
+        existing = User.query.filter_by(fio=fio_nastavnika).first()
+        if not existing:
+            db.session.add(us)
+            db.session.commit()
+            print("Комит юзера")
+        else:
+            print("Уже есть:", existing.fio)
+
+        mer = Meropriyatie(name=meropriyatie, date=sroki_provedeniya, uroven=ur)
+        db.session.add(mer)
+        db.session.commit()
+
+
+        uchastie = Ucastie(rezultat=f"{rezultat}, {diplomi}, {nagradi}", meropriyatie=mer, user=us, user_null=us_null)
+        db.session.add(uchastie)
         db.session.commit()
         return redirect('/students')
     return render_template('students_add.html')
@@ -99,30 +146,92 @@ def students_add():
 
 @app.route('/students/edit/<int:id>', methods=['GET','POST'])
 def students_edit(id):
-    student =Student.query.get_or_404(id)
+    uchastiya = Ucastie.query.get_or_404(id)
     if request.method == 'POST':
-        student.meropriyatie = request.form['meropriyatie']
-        student.uroven = request.form['uroven']
-        student.sroki_provedeniya = request.form['sroki_provedeniya']
-        student.rezultat = request.form['rezultat']
-        student.fio = request.form['fio']
-        student.diplomi = request.form['diplomi']
-        student.nagradi = request.form['nagradi']
-        student.fio_nastavnika = request.form['fio_nastavnika']
+        uchastiya.meropriyatie.name = request.form['meropriyatie']
+        uchastiya.meropriyatie.uroven.uroven_name = request.form['uroven']
+        uchastiya.meropriyatie.date = request.form['sroki_provedeniya']
+        rezultat = request.form['rezultat']
+        diplomi = request.form['diplomi']
+        nagradi = request.form['nagradi']
+        uchastiya.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
+        uchastiya.user.fio = request.form['fio']
+        uchastiya.user.group = request.form['group']
+        uchastiya.user_null.fio = request.form['fio_nastavnika']
         db.session.commit()
         return redirect('/students')
-    return render_template('students_edit.html', student=student)
+    return render_template('students_edit.html', uchastiya=uchastiya)
 
 
 @app.route('/students/delete/<int:id>', methods=['POST'])
 def students_del(id):
-    student =Student.query.get_or_404(id)
-    db.session.delete(student)
+    uchastiya =Ucastie.query.get_or_404(id)
+    db.session.delete(uchastiya)
     db.session.commit()
     return redirect('/students')
 
 
+@app.route('/users')
+def users():
+    users = User.query.all()
+    return render_template('users.html', users=users)
 
+@app.route('/user_stud_add', methods=['POST', 'GET'])
+def user_stud_add():
+    if request.method == 'POST':
+        fio = request.form['fio']
+        group = request.form['group']
+        existing = User.query.filter_by(fio=fio).first()
+        if not existing:
+            us = User(fio=fio, group=group)
+            db.session.add(us)
+            db.session.commit()
+            print("Комит юзера")
+        else:
+            print("Уже есть:", existing.fio)
+        return redirect('/users')
+    return render_template('user_stud_add.html')
+
+@app.route('/user_ped_add', methods=['POST', 'GET'])
+def user_ped_add():
+    if request.method == 'POST':
+        fio = request.form['fio']
+        existing = User.query.filter_by(fio=fio).first()
+        if not existing:
+            us = User(fio=fio)
+            db.session.add(us)
+            db.session.commit()
+            print("Комит юзера")
+        else:
+            print("Уже есть:", existing.fio)
+        return redirect('/users')
+    return render_template('user_ped_add.html')
+
+@app.route('/user_edit/<int:id>', methods=['GET','POST'])
+def user_edit(id):
+    user = User.query.get_or_404(id)
+    if request.method == 'POST':
+        if user.group == None:
+            user.fio = request.form['fio']
+        else:
+            user.fio = request.form['fio']
+            user.group = request.form['group']
+        db.session.commit()
+        return redirect('/users')
+    return render_template('user_edit.html', user = user)
+
+@app.route('/user_del/<int:id>', methods=['POST'])
+def user_del(id):
+    user = User.query.get_or_404(id)
+    db.session.delete(user)
+    db.session.commit()
+    return redirect('/users')
+
+
+
+
+
+'''
 ####################ОТЧЕТ№№№№№№№№№№№№№№№№№№№№№№№№
 
 @app.route('/rabotniki/download')

@@ -9,34 +9,28 @@
         <th>Мероприятие</th>
         <th>Уровень</th>
         <th>Сроки проведения</th>
-        <th>Результаты</th>
-        <th>ФИО</th>
-        <th>Дипломы</th>
-        <th>Награды</th>
-        <th>ФИО наставника/преподавателя</th>
+        <th>ФИО, Группа, Результаты, Дипломы, Награды, ФИО наставника/преподавателя</th>
 
 
     </tr>
     </thead>
     <tbody>
-    {% for student in students %}
+    {% for uchastie in uchastiya %}
+    {% if uchastie.user_null %}
     <tr>
-        <td> {{ student.id }} </td>
-        <td> {{ student.meropriyatie }} </td>
-        <td> {{ student.uroven }} </td>
-        <td> {{ student.sroki_provedeniya }} </td>
-        <td> {{ student.rezultat }} </td>
-        <td> {{ student.fio }} </td>
-        <td> {{ student.diplomi }} </td>
-        <td> {{ student.nagradi }} </td>
-        <td> {{ student.fio_nastavnika }} </td>
+        <td> {{ uchastie.id }} </td>
+        <td> {{ uchastie.meropriyatie.name }} </td>
+        <td> {{ uchastie.meropriyatie.uroven.uroven_name }} </td>
+        <td> {{ uchastie.meropriyatie.date }} </td>
+        <td> {{ uchastie.user.fio }}, {{ uchastie.user.group }}, {{ uchastie.rezultat }} (Наставник: {{ uchastie.user_null.fio }}) </td>
         <td>
-            <a href="{{ url_for('students_edit', id= student.id) }}" class="btn btn-sm btn-warning mx-1">Редактировать</a>
-            <form method="post" style="display: inline" action="{{ url_for ('students_del', id= student.id) }}">
+            <a href="{{ url_for ('students_edit', id= uchastie.id) }}" class="btn btn-sm btn-warning mx-1">Редактировать</a>
+            <form method="post" style="display: inline" action="{{ url_for ('students_del', id= uchastie.id) }}">
                 <button type="submit" class="btn btn-sm btn-danger mx-1">Удалить</button>
             </form>
         </td>
     </tr>
+    {% endif %}
     {% endfor %}
     </tbody>
 
