@@ -20,6 +20,7 @@ def ped_rab():
 
 @app.route('/rabotniki/add', methods=['GET','POST'])
 def ped_rab_add():
+    user_ped = User.query.all()
     if request.method == 'POST':
         meropriyatie = request.form['meropriyatie']
         uroven = request.form['uroven']
@@ -57,7 +58,7 @@ def ped_rab_add():
         db.session.add(uchastie)
         db.session.commit()
         return redirect('/rabotniki')
-    return render_template('ped_rab_add.html')
+    return render_template('ped_rab_add.html', user_ped=user_ped)
 
 
 @app.route('/rabotniki/edit/<int:id>', methods=['GET','POST'])
@@ -94,6 +95,7 @@ def students():
 
 @app.route('/students/add', methods=['GET','POST'])
 def students_add():
+    user_stud = User.query.all()
     if request.method == 'POST':
         meropriyatie = request.form['meropriyatie']
         uroven = request.form['uroven']
@@ -141,7 +143,7 @@ def students_add():
         db.session.add(uchastie)
         db.session.commit()
         return redirect('/students')
-    return render_template('students_add.html')
+    return render_template('students_add.html', user_stud=user_stud)
 
 
 @app.route('/students/edit/<int:id>', methods=['GET','POST'])

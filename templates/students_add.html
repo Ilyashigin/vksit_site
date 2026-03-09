@@ -21,11 +21,25 @@
     </div>
     <div class="mb-3">
       <label for="fio" class="form-label">ФИО</label>
-      <input type="text" class="form-control" id="fio" name="fio" required>
+      <input class="form-control" list="datalistOptions" id="fio" placeholder="Поиск" name="fio">
+      <datalist id="datalistOptions">
+        {% for user in user_stud %}
+        {% if user.group %}
+        <option value="{{ user.fio }}">
+        {% endif %}
+        {% endfor %}
+      </datalist>
     </div>
     <div class="mb-3">
       <label for="group" class="form-label">Группа</label>
-      <input type="text" class="form-control" id="group" name="group" required>
+      <input type="text" class="form-control" list="group_list" id="group" name="group" required>
+      <datalist id="group_list">
+        {% for user in user_stud %}
+        {% if user.group %}
+        <option value="{{ user.group }}">
+        {% endif %}
+        {% endfor %}
+      </datalist>
     </div>
     <div class="mb-3">
       <label for="diplomi" class="form-label">Дипломы</label>
@@ -37,7 +51,14 @@
     </div>
     <div class="mb-3">
       <label for="fio_nastavnika" class="form-label">ФИО наставника/преподавателя</label>
-      <input type="text" class="form-control" id="fio_nastavnika" name="fio_nastavnika" required>
+      <input type="text" class="form-control" list="fio_nastavn" id="fio_nastavnika" name="fio_nastavnika" required>
+      <datalist id="fio_nastavn">
+        {% for user in user_stud %}
+        {% if user.group == none %}
+        <option value="{{ user.fio }}">
+        {% endif %}
+        {% endfor %}
+      </datalist>
     </div>
     <button type="submit" class="btn btn-primary">Сохранить</button>
   </form>
