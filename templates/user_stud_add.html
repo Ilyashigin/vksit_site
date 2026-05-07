@@ -5,12 +5,27 @@
   <form method="post" action="{{ url_for('user_stud_add') }}">
     <div class="mb-3">
       <label for="fio" class="form-label">ФИО</label>
-      <input type="text" class="form-control" id="fio" name="fio" required>
+      <input type="text" class="form-control" list="users" id="fio" placeholder="Поиск" name="fio" required>
+      <datalist id="users">
+        {% for user in user_stud %}
+        {% if user.group %}
+        <option value="{{ user.fio }}">
+        {% endif %}
+        {% endfor %}
+      </datalist>
     </div>
     <div class="mb-3">
       <label for="group" class="form-label">Группа</label>
-      <input type="text" class="form-control" id="group" name="group" required>
+      <input type="text" class="form-control" list="group_list" placeholder="Поиск" id="group" name="group" required>
+      <datalist id="group_list">
+        {% for user in user_stud %}
+        {% if user.group %}
+        <option value="{{ user.group }}">
+        {% endif %}
+        {% endfor %}
+      </datalist>
     </div>
+
     <button type="submit" class="btn btn-primary">Сохранить</button>
   </form>
 </div>
