@@ -21,6 +21,8 @@ def ped_rab():
 @app.route('/rabotniki/add', methods=['GET','POST'])
 def ped_rab_add():
     user_ped = User.query.all()
+    urovni = Uroven.query.all()
+    mers = Meropriyatie.query.all()
     if request.method == 'POST':
         meropriyatie = request.form['meropriyatie']
         uroven = request.form['uroven']
@@ -58,7 +60,7 @@ def ped_rab_add():
         db.session.add(uchastie)
         db.session.commit()
         return redirect('/rabotniki')
-    return render_template('ped_rab_add.html', user_ped=user_ped)
+    return render_template('ped_rab_add.html', user_ped=user_ped, urovni=urovni, mers=mers)
 
 
 @app.route('/rabotniki/edit/<int:id>', methods=['GET','POST'])
@@ -96,6 +98,8 @@ def students():
 @app.route('/students/add', methods=['GET','POST'])
 def students_add():
     user_stud = User.query.all()
+    urovni = Uroven.query.all()
+    mers = Meropriyatie.query.all()
     if request.method == 'POST':
         meropriyatie = request.form['meropriyatie']
         uroven = request.form['uroven']
@@ -143,7 +147,7 @@ def students_add():
         db.session.add(uchastie)
         db.session.commit()
         return redirect('/students')
-    return render_template('students_add.html', user_stud=user_stud)
+    return render_template('students_add.html', user_stud=user_stud, urovni=urovni, mers=mers)
 
 
 @app.route('/students/edit/<int:id>', methods=['GET','POST'])
@@ -172,7 +176,7 @@ def students_del(id):
     db.session.commit()
     return redirect('/students')
 
-
+#---------------------USERS---------------------------------
 @app.route('/users')
 def users():
     users = User.query.all()
@@ -180,6 +184,7 @@ def users():
 
 @app.route('/user_stud_add', methods=['POST', 'GET'])
 def user_stud_add():
+    user_stud = User.query.all()
     if request.method == 'POST':
         fio = request.form['fio']
         group = request.form['group']
@@ -192,10 +197,11 @@ def user_stud_add():
         else:
             print("Уже есть:", existing.fio)
         return redirect('/users')
-    return render_template('user_stud_add.html')
+    return render_template('user_stud_add.html', user_stud=user_stud)
 
 @app.route('/user_ped_add', methods=['POST', 'GET'])
 def user_ped_add():
+    users = User.query.all()
     if request.method == 'POST':
         fio = request.form['fio']
         existing = User.query.filter_by(fio=fio).first()
@@ -207,7 +213,7 @@ def user_ped_add():
         else:
             print("Уже есть:", existing.fio)
         return redirect('/users')
-    return render_template('user_ped_add.html')
+    return render_template('user_ped_add.html', user_ped=users)
 
 @app.route('/user_edit/<int:id>', methods=['GET','POST'])
 def user_edit(id):
@@ -231,7 +237,7 @@ def user_del(id):
 
 
 
-
+#@app.route('/meropriyatiya')
 
 '''
 ####################ОТЧЕТ№№№№№№№№№№№№№№№№№№№№№№№№
@@ -245,3 +251,5 @@ def ped_rab_download():
 
     print("Файл записан")
     return redirect('/rabotniki')'''
+if __name__ == '__main__':
+    app.run(debug=True)

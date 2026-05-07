@@ -19,13 +19,24 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
         <a class="navbar-brand" href="/">Учёт участия пед работников</a>
-        <a class="btn btn-info" href="{{ url_for ('users') }}">Все участники</a>
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                Просмотр отдельных таблиц
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for ('users') }}">Все участники</a></li>
+                <li><a class="dropdown-item" href="#">Все Мероприятия</a></li>
+                <li><a class="dropdown-item" href="#">Все Уровни</a></li>
+                <li><a class="dropdown-item" href="#">Все Группы</a></li>
+            </ul>
+        </div>
         <a class="btn btn-info" href="{{ url_for ('ped_rab') }}">Работники</a>
         <a class="btn btn-info" href="{{ url_for ('students') }}">Студенты</a>
     </div>
 
 </nav>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <div class="container my-3">
     {% block content %}
     {% endblock %}
