@@ -429,6 +429,15 @@ def stud_edit(id):
         print("Комит юзера")
     else:
         print("Уже есть:", existing.fio)
+
+    event = Meropriyatie(name=meropriyatie, date=sroki_provedeniya)
+    existing = Meropriyatie.query.filter_by(name=meropriyatie, date=sroki_provedeniya).first()
+    if not existing:
+        db.session.add(event)
+        db.session.commit()
+        print("Комит мероприятия")
+    else:
+        print("Уже есть:", existing.name)
     # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     uchastiya.meropriyatie.name = meropriyatie
