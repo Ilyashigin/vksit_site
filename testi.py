@@ -1,3 +1,5 @@
+from flask import request
+
 event = "ssst"
 goal = "students"
 goal2 = "sssss"
@@ -13,3 +15,4 @@ if c>=3:
     print("da")
 else:
     print("ne")
+

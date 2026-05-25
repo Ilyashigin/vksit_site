@@ -25,14 +25,14 @@
                 Просмотр отдельных таблиц
             </button>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="{{ url_for ('users') }}">Все участники</a></li>
+                <li><a class="dropdown-item" href="{{ url_for ('main_view_bp.user_page') }}">Все участники</a></li>
                 <li><a class="dropdown-item" href="#">Все Мероприятия</a></li>
                 <li><a class="dropdown-item" href="#">Все Уровни</a></li>
                 <li><a class="dropdown-item" href="#">Все Группы</a></li>
             </ul>
         </div>
-        <a class="btn btn-info" href="{{ url_for ('ped_rab') }}">Работники</a>
-        <a class="btn btn-info" href="{{ url_for ('students') }}">Студенты</a>
+        <a class="btn btn-info" href="{{ url_for ('main_view_bp.ped_rab_page') }}">Работники</a>
+        <a class="btn btn-info" href="{{ url_for ('main_view_bp.stud_page') }}">Студенты</a>
     </div>
 
 </nav>

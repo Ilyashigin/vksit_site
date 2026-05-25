@@ -89,39 +89,41 @@ def ped_rab_add():
         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         #########проверка на наличие уже в бд№##############
-        event = Meropriyatie(name=meropriyatie, date=sroki_provedeniya)
-        existing = Meropriyatie.query.filter_by(name=meropriyatie, date=sroki_provedeniya).first()
-        if not existing:
+        level = Uroven.query.filter_by(uroven_name=uroven).first()
+        if not level:
+            level = Uroven(uroven_name=uroven)
+            db.session.add(level)
+            db.session.commit()
+
+
+        user = User.query.filter_by(fio=fio).first()
+        if not user:
+            user = User(fio=fio)
+            db.session.add(user)
+            db.session.commit()
+
+
+        event = Meropriyatie.query.filter_by(
+            name=meropriyatie,
+            date=sroki_provedeniya,
+            id_uroven=level.id
+        ).first()
+        if not event:
+            event = Meropriyatie(
+                name=meropriyatie,
+                date=sroki_provedeniya,
+                id_uroven=level.id
+            )
             db.session.add(event)
             db.session.commit()
-            print("Комит мероприятия")
-        else:
-            print("Уже есть:", existing.name)
 
-        ur = Uroven(uroven_name=uroven)
-        existing = Uroven.query.filter_by(uroven_name=uroven).first()
-        if not existing:
-            db.session.add(ur)
-            db.session.commit()
-            print("Комит уровень")
-        else:
-            print("Уже есть:", existing.uroven_name)
 
-        us = User(fio=fio)
-        existing = User.query.filter_by(fio=fio).first()
-        if not existing:
-            db.session.add(us)
-            db.session.commit()
-            print("Комит юзера")
-        else:
-            print("Уже есть:", existing.fio)
-        #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-        mer = Meropriyatie(name=meropriyatie, date=sroki_provedeniya, uroven=ur)
-        db.session.add(mer)
-        db.session.commit()
-
-        uchastie = Ucastie(rezultat=f"{rezultat}, {diplomi}, {nagradi}", meropriyatie=mer, user=us, year=year)
+        uchastie = Ucastie(
+            rezultat=f"{rezultat}, {diplomi}, {nagradi}",
+            id_meropriyatie=event.id,
+            id_user=user.id,
+            year=year
+        )
         db.session.add(uchastie)
         db.session.commit()
     return jsonify([{

@@ -33,31 +33,42 @@ def event_add():
     if request.method == 'POST':
         event_name = data['event_name']
         event_date = data['event_date']
+        level_name = data['event_level']
 
         #-----проверки----
         if not event_name or not str(event_name).strip():
             return jsonify({'error': 'Поле Название обязательно к заполнению'}), 400
         if not event_date or not str(event_date).strip():
             return jsonify({'error': 'Поле Дата обязательно к заполнению'}), 400
+        if not level_name or not str(level_name).strip():
+            return jsonify({'error': 'Поле Уровень обязательно к заполнению'}), 400
 
+        level = Uroven.query.filter_by(uroven_name=level_name).first()
+        if not level:
+            level = Uroven(uroven_name=level_name)
+            db.session.add(level)
+            db.session.commit()
         #---проверка в бд
-        event = Meropriyatie(name=event_name, date=event_date)
-        existing = Meropriyatie.query.filter_by(name=event_name, date=event_date).first()
-        if not existing:
+        event = Meropriyatie.query.filter_by(
+            name=event_name,
+            date=event_date,
+            id_uroven=level.id  # ← важно: используем id найденного уровня!
+        ).first()
+        if not event:
+            event = Meropriyatie(
+                name=event_name,
+                date=event_date,
+                id_uroven=level.id  # ← передаём id, а не объект
+            )
             db.session.add(event)
             db.session.commit()
-            print("Комит мероприятия")
+        else:
+            print("Уже есть:", event.id_uroven.uroven_name)
             return jsonify({
                 'id': event.id,
                 'event_name': event.name,
-                'event_date': event.date
-            }), 201
-        else:
-            print("Уже есть:", existing.uroven_name)
-            return jsonify({
-                'id': existing.id,
-                'event_name': existing.name,
-                'event_date': existing.date
+                'event_date': event.date,
+                'event_level': event.id_uroven.uroven_name
             }), 200
 
 @event_bp.route('/<int:id>', methods=['PUT'])
