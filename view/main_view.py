@@ -20,15 +20,10 @@ def stud_page():
 def user_page():
     return render_template('users_view.html')
 
-'''
-####################ОТЧЕТ№№№№№№№№№№№№№№№№№№№№№№№№
+@main_view_bp.route('/levels')
+def level_page():
+    return render_template('level_view.html')
 
-@app.route('/rabotniki/download')
-def ped_rab_download():
-    rabs = Rabotnik.query.all()
-    with open("otchet.txt", "w", encoding="utf8") as file:
-        for rab in rabs:
-            file.write(f"№ { rab.id } Мероприятие: { rab.meropriyatie } Уровень: { rab.uroven } Сроки проведения: { rab.sroki_provedeniya } Результаты: { rab.rezultat } ФИО: { rab.fio } Дипломы: { rab.diplomi } Награды: { rab.nagradi }\n" )
-
-    print("Файл записан")
-    return redirect('/rabotniki')'''
+@main_view_bp.route('/events')
+def event_page():
+    return render_template('event_view.html')
