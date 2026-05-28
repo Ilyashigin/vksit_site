@@ -1,92 +1,212 @@
 {% extends 'base.html' %}
 {% block content %}
+
 <h1>{{ title }}</h1>
 
 <div class="d-flex gap-2 mb-3">
-    <button type="button" class="btn btn-primary" onclick="openAddModal()">Добавить мероприятие</button>
+    <button type="button" class="btn btn-primary" onclick="openAddModal()">
+        Добавить мероприятие
+    </button>
+
     <a href="#" class="btn btn-secondary">Скачать отчет</a>
 </div>
 
 <div id="loading" class="text-center my-3">
-    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Загрузка...</span></div>
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
 </div>
 
-<table class="table table-striped" id="main-table" style="display: none;">
-    <thead>
+<table class="table table-striped table-hover" id="main-table" style="display:none;">
+    <thead class="table-light">
         <tr>
             <th>№</th>
             <th>Мероприятие</th>
             <th>Уровень</th>
             <th>Сроки проведения</th>
             <th>Результаты, ФИО, Дипломы, Награды</th>
-            {% if user_type == 'stud' %}<th>Группа</th>{% endif %}
+
+            {% if user_type == 'stud' %}
+                <th>Группа</th>
+                <th>Наставник</th>
+            {% endif %}
+
             <th>Действия</th>
         </tr>
     </thead>
+
     <tbody id="table-body"></tbody>
 </table>
 
-<!-- Модальное окно -->
+<!-- МОДАЛКА -->
 <div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
+
             <div class="modal-header">
                 <h5 class="modal-title" id="modalTitle">Добавить мероприятие</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"></button>
             </div>
+
             <div class="modal-body">
+
                 <form id="eventForm">
+
                     <input type="hidden" id="editId">
 
+                    <!-- МЕРОПРИЯТИЕ -->
                     <div class="mb-2">
-                        <label>Мероприятие</label>
-                        <input type="text" class="form-control" id="m_name" list="dl_events" required autocomplete="off" placeholder="Введите или выберите...">
+                        <label class="form-label">Мероприятие</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_name"
+                               list="dl_events"
+                               autocomplete="off"
+                               required>
+
                         <datalist id="dl_events"></datalist>
                     </div>
 
+                    <!-- УРОВЕНЬ -->
                     <div class="mb-2">
-                        <label>Уровень</label>
-                        <input type="text" class="form-control" id="m_level" list="dl_levels" required autocomplete="off" placeholder="Введите или выберите...">
+                        <label class="form-label">Уровень</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_level"
+                               list="dl_levels"
+                               autocomplete="off"
+                               required>
+
                         <datalist id="dl_levels"></datalist>
                     </div>
 
+                    <!-- ДАТА -->
                     <div class="mb-2">
-                        <label>Сроки проведения</label>
-                        <input type="text" class="form-control" id="m_date" required autocomplete="off" placeholder="Введите или выберите мероприятие...">
+                        <label class="form-label">Сроки проведения</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_date"
+                               autocomplete="off"
+                               required>
                     </div>
 
+                    <!-- ФИО -->
                     <div class="mb-2">
-                        <label>ФИО</label>
-                        <input type="text" class="form-control" id="m_fio" list="dl_users" required autocomplete="off" placeholder="Введите или выберите...">
+                        <label class="form-label">ФИО</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_fio"
+                               list="dl_users"
+                               autocomplete="off"
+                               required>
+
                         <datalist id="dl_users"></datalist>
                     </div>
 
                     {% if user_type == 'stud' %}
+
+                    <!-- ГРУППА -->
                     <div class="mb-2">
-                        <label>Группа</label>
-                        <input type="text" class="form-control" id="m_group" list="dl_groups" required autocomplete="off" placeholder="Введите или выберите...">
+                        <label class="form-label">Группа</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_group"
+                               list="dl_groups"
+                               autocomplete="off"
+                               required>
+
                         <datalist id="dl_groups"></datalist>
                     </div>
+
+                    <!-- НАСТАВНИК -->
+                    <div class="mb-2">
+                        <label class="form-label">Наставник</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_mentor"
+                               list="dl_mentors"
+                               autocomplete="off"
+                               required>
+
+                        <datalist id="dl_mentors"></datalist>
+                    </div>
+
                     {% endif %}
 
-                    <div class="mb-2"><label>Результат</label><input type="text" class="form-control" id="m_result" required></div>
-                    <div class="mb-2"><label>Дипломы</label><input type="text" class="form-control" id="m_diploms"></div>
-                    <div class="mb-2"><label>Награды</label><input type="text" class="form-control" id="m_awards"></div>
-                    <div class="mb-2"><label>Год</label><input type="number" class="form-control" id="m_year" required></div>
+                    <!-- РЕЗУЛЬТАТ -->
+                    <div class="mb-2">
+                        <label class="form-label">Результат</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_result"
+                               required>
+                    </div>
+
+                    <!-- ДИПЛОМЫ -->
+                    <div class="mb-2">
+                        <label class="form-label">Дипломы</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_diploms">
+                    </div>
+
+                    <!-- НАГРАДЫ -->
+                    <div class="mb-2">
+                        <label class="form-label">Награды</label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_awards">
+                    </div>
+
+                    <!-- ГОД -->
+                    <div class="mb-2">
+                        <label class="form-label">Год</label>
+
+                        <input type="number"
+                               class="form-control"
+                               id="m_year"
+                               required>
+                    </div>
+
                 </form>
+
             </div>
+
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="saveEvent()">Сохранить</button>
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Отмена
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="saveEvent()">
+                    Сохранить
+                </button>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- Передаём тип пользователя в JS -->
 <script>
     window.USER_TYPE = "{{ user_type }}";
     window.API_BASE = "/api/uchastiya/" + window.USER_TYPE;
 </script>
+
 <script src="{{ url_for('static', filename='main.js') }}"></script>
+
 {% endblock %}

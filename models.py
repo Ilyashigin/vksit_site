@@ -13,10 +13,10 @@ class Ucastie(db.Model):
     id_meropriyatie = db.Column(db.Integer, db.ForeignKey('meropriyatie.id'), nullable=False)
 
     id_user = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    id_user_null = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    id_mentor = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     user = db.relationship('User', foreign_keys=[id_user], backref='ucastie_main')
-    user_null = db.relationship('User', foreign_keys=[id_user_null], backref='ucastie_optional')
+    mentor = db.relationship('User', foreign_keys=[id_mentor], backref='ucastie_optional')
 
 
 class User(db.Model):

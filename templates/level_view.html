@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<h1 class="mb-4">Список уровней мероприятий</h1>
+
+<div class="d-flex gap-2 mb-3">
+    <button type="button" class="btn btn-primary" onclick="openModal('add')">
+        Добавить уровень
+    </button>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+
+        <div id="loading-levels" class="text-center py-3">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <table class="table table-striped table-hover mb-0" id="level-table" style="display: none;">
+            <thead class="table-light">
+                <tr>
+                    <th>№</th>
+                    <th>Уровень мероприятия</th>
+                    <th class="text-end">Действия</th>
+                </tr>
+            </thead>
+
+            <tbody id="level-body"></tbody>
+        </table>
+
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div class="modal fade" id="levelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">
+                    Добавить уровень
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <form id="levelForm">
+
+                    <input type="hidden" id="editId">
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Название уровня
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               id="m_level"
+                               required
+                               placeholder="Например: Международный">
+                    </div>
+
+                </form>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+                    Отмена
+                </button>
+
+                <button type="button"
+                        class="btn btn-primary"
+                        onclick="saveLevel()">
+                    Сохранить
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='level_view.js') }}"></script>
+
+{% endblock %}

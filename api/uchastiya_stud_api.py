@@ -21,6 +21,7 @@ def stud():
         }
         if u.user.group:
             item['group'] = u.user.group
+            item['mentor']= u.mentor.fio
             result.append(item)
     return jsonify(result), 200
 
@@ -38,6 +39,7 @@ def stud_by_id(id):
     }
     if u.user.group:
         item['group'] = u.user.group
+        item['mentor']= u.mentor.fio
         return jsonify(item), 200
 
 @ucastie_stud_bp.route('/api/uchastiya/stud', methods=['POST'])
@@ -57,8 +59,11 @@ def stud_add():
         nagradi = data['nagradi']
         year = data['year']
         group = data['group']
+        mentor = data['mentor']
 
         #-----------Провенрки-------------------
+        if not mentor or not str(mentor).strip():
+            return jsonify({'error': 'Поле Наставник обязательно к заполнению'}), 400
         if not group or not str(group).strip():
             return jsonify({'error': 'Поле Группа обязательно к заполнению'}), 400
 
@@ -119,13 +124,29 @@ def stud_add():
             )
             db.session.add(event)
             db.session.commit()
-
-        uchastie = Ucastie(
-            rezultat=f"{rezultat}, {diplomi}, {nagradi}",
-            id_meropriyatie=event.id,
-            id_user=user.id,
-            year=year
-        )
+        use = User.query.filter_by(fio=mentor).first()
+        if use:
+            uchastie = Ucastie(
+                rezultat=f"{rezultat}, {diplomi}, {nagradi}",
+                id_meropriyatie=event.id,
+                id_user=user.id,
+                id_mentor=use.id,
+                year=year
+            )
+        else:
+            us = User(fio=mentor)
+            db.session.add(us)
+            db.session.commit()
+            uchastie = Ucastie(
+                rezultat=f"{rezultat}, {diplomi}, {nagradi}",
+                id_meropriyatie=event.id,
+                id_user=user.id,
+                id_mentor = us.id,
+                year=year
+            )
+        print("MENTOR:", mentor)
+        print("USE:", use)
+        print("ID:", use.id)
         db.session.add(uchastie)
         db.session.commit()
     return jsonify([{
@@ -135,7 +156,8 @@ def stud_add():
         'event_name': uchastie.meropriyatie.name,
         'event_date': uchastie.meropriyatie.date,
         'event_level': uchastie.meropriyatie.uroven.uroven_name,
-        'user_name': uchastie.user.fio
+        'user_name': uchastie.user.fio,
+        'mentor': uchastie.mentor.fio
     }]), 201
 
 @ucastie_stud_bp.route('/api/uchastiya/stud/<int:id>', methods=['PUT'])
@@ -155,8 +177,12 @@ def stud_edit(id):
     nagradi = data['nagradi']
     year = data['year']
     group = data['group']
+    mentor = data['mentor']
 
     # -----------Провенрки-------------------
+    if not mentor or not str(mentor).strip():
+        return jsonify({'error': 'Поле Наставник обязательно к заполнению'}), 400
+
     if not group or not str(group).strip():
         return jsonify({'error': 'Поле Группа обязательно к заполнению'}), 400
 
@@ -202,6 +228,7 @@ def stud_edit(id):
     uchastiya.user.fio = fio
     uchastiya.user.group = group
     uchastiya.year = year
+    uchastiya.mentor.fio = mentor
     db.session.commit()
     return jsonify([{
         'id': uchastiya.id,

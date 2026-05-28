@@ -97,6 +97,9 @@ def event_edit(id):
 @event_bp.route('/<int:id>', methods=['DELETE'])
 def event_delete(id):
     event = Meropriyatie.query.get_or_404(id)
+    uc = Ucastie.query.filter_by(id_meropriyatie=event.id).first()
+    if uc:
+        return jsonify({'error': f'Нельзя удалить Мероприятие, которое записано в участии ({uc.meropriyatie.name}, {uc.meropriyatie.date})'}), 400
     db.session.delete(event)
     db.session.commit()
     return jsonify([]), 204

@@ -75,6 +75,9 @@ def uroven_edit(id):
 @level_bp.route('/<int:id>', methods=['DELETE'])
 def uroven_delete(id):
     level = Uroven.query.get_or_404(id)
+    event = Meropriyatie.query.filter_by(id_uroven=level.id).first()
+    if event:
+        return jsonify({'error': f'Нельзя удалить уровень, который записан в мероприятии ({event.name}, {event.date})'}), 400
     db.session.delete(level)
     db.session.commit()
     return jsonify([]), 204
