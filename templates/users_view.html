@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1 class="mb-4">Список участников</h1>
+
+<div class="d-flex gap-2 mb-3">
+    <button type="button" class="btn btn-primary" onclick="openModal('add')">Добавить участника</button>
+</div>
+
+<div class="row">
+    <!-- Левая колонка: Преподаватели -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-bold text-center">👨‍🏫 Преподаватели</div>
+            <div class="card-body p-0">
+                <div id="loading-staff" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <table class="table table-striped table-hover mb-0" id="staff-table" style="display: none;">
+                    <thead class="table-light">
+                        <tr><th>№</th><th>ФИО</th><th class="text-end">Действия</th></tr>
+                    </thead>
+                    <tbody id="staff-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка: Студенты -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-bold text-center">🎓 Студенты</div>
+            <div class="card-body p-0">
+                <div id="loading-students" class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <table class="table table-striped table-hover mb-0" id="student-table" style="display: none;">
+                    <thead class="table-light">
+                        <tr><th>№</th><th>ФИО</th><th>Группа</th><th class="text-end">Действия</th></tr>
+                    </thead>
+                    <tbody id="student-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно (единое для добавления/редактирования) -->
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Добавить участника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="editId">
+                    <div class="mb-3">
+                        <label class="form-label">ФИО</label>
+                        <input type="text" class="form-control" id="m_fio" required placeholder="Иванов Иван Иванович">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Группа <span class="text-muted small">(оставьте пустым для преподавателя)</span></label>
+                        <input type="text" class="form-control" id="m_group" placeholder="Например: ИСП-323т">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()"> Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключаем отдельный скрипт для этой страницы -->
+<script src="{{ url_for('static', filename='users_view.js') }}"></script>
+{% endblock %}

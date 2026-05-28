@@ -119,6 +119,9 @@ def put_user(id):
 @user_bp.route('/<int:id>', methods=['DELETE'])
 def delete_user(id):
     user=User.query.get_or_404(id)
+    uc = Ucastie.query.filter_by(id_user=user.id).first()
+    if uc:
+        return jsonify({'error': 'Нельзя удалить пользователя, у которого есть записи об участии'}), 400
     db.session.delete(user)
     db.session.commit()
     return jsonify([]), 204
