@@ -20,7 +20,8 @@ def ped_rab():
         }
         #if u.user.group:
             #item['user_group'] = u.user.group
-        result.append(item)
+        if u.user.group == None:
+            result.append(item)
     return jsonify(result), 200
 
 @ucastie_ped_bp.route('/api/uchastiya/ped/<int:id>', methods=['GET'])
@@ -44,7 +45,7 @@ def ped_rab_add():
     data = request.get_json()
     current_date = date.today()
     current_year = current_date.year
-    allow_years = [current_year-2, current_year-1, current_year]
+    allow_years = [current_year-5, current_year-4, current_year-3, current_year-2, current_year-1, current_year, current_year+1]
 
     if request.method == 'POST':
         meropriyatie = data['event_name']
@@ -71,12 +72,18 @@ def ped_rab_add():
 
         if not fio or not str(fio).strip():
             return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+        if any(char.isdigit() for char in fio):
+            return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
         try:
             fio_ls = fio.split()
         except:
             return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
         if len(fio_ls) > 4:
-            return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+            return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+        if len(fio_ls) < 2:
+            return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+        if any(len(w) < 2 for w in fio_ls):
+            return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
 
         if not year or not str(year).strip():
             return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
@@ -85,7 +92,7 @@ def ped_rab_add():
         except:
             return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
         if int(year) not in allow_years:
-            return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[2]}'}), 400
+            return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         #########проверка на наличие уже в бд№##############
@@ -138,11 +145,11 @@ def ped_rab_add():
 
 @ucastie_ped_bp.route('/api/uchastiya/ped/<int:id>', methods=['PUT'])
 def ped_rab_edit(id):
-    uchastiya =Ucastie.query.get_or_404(id)
+    uchastie =Ucastie.query.get_or_404(id)
     data = request.get_json()
     current_date = date.today()
     current_year = current_date.year
-    allow_years = [current_year - 2, current_year - 1, current_year]
+    allow_years = [current_year-5, current_year-4, current_year-3, current_year-2, current_year-1, current_year, current_year+1]
 
     meropriyatie = data['event_name']
     uroven = data['event_level']
@@ -168,12 +175,20 @@ def ped_rab_edit(id):
 
     if not fio or not str(fio).strip():
         return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+
+    if any(char.isdigit() for char in fio):
+        return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
+
     try:
         fio_ls = fio.split()
     except:
         return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
     if len(fio_ls) > 4:
-        return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+        return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+    if len(fio_ls) < 2:
+        return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+    if any(len(w) < 2 for w in fio_ls):
+        return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
 
     if not year or not str(year).strip():
         return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
@@ -182,28 +197,53 @@ def ped_rab_edit(id):
     except:
         return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
     if int(year) not in allow_years:
-        return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[2]}'}), 400
+        return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
     # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+    #########проверка на наличие уже в бд№##############
+    level = Uroven.query.filter_by(uroven_name=uroven).first()
+    if not level:
+        level = Uroven(uroven_name=uroven)
+        db.session.add(level)
+        db.session.commit()
 
-    uchastiya.meropriyatie.name = meropriyatie
-    uchastiya.meropriyatie.uroven.uroven_name = uroven
-    uchastiya.meropriyatie.date = sroki_provedeniya
-    rezultat = rezultat
-    diplomi = diplomi
-    nagradi = nagradi
-    uchastiya.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
-    uchastiya.user.fio = fio
-    uchastiya.year = year
+    user = User.query.filter_by(fio=fio).first()
+    if not user:
+        user = User(fio=fio)
+        db.session.add(user)
+        db.session.commit()
+
+    event = Meropriyatie.query.filter_by(
+        name=meropriyatie,
+        date=sroki_provedeniya,
+        id_uroven=level.id
+    ).first()
+    if not event:
+        event = Meropriyatie(
+            name=meropriyatie,
+            date=sroki_provedeniya,
+            id_uroven=level.id
+        )
+        db.session.add(event)
+        db.session.commit()
+
+
+
+    uchastie.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
+    uchastie.year = year
+    uchastie.id_meropriyatie = event.id
+    uchastie.id_user = user.id
+
+
     db.session.commit()
     return jsonify([{
-        'id': uchastiya.id,
-        'rezults': uchastiya.rezultat,
-        'year': uchastiya.year,
-        'event_name': uchastiya.meropriyatie.name,
-        'event_date': uchastiya.meropriyatie.date,
-        'event_level': uchastiya.meropriyatie.uroven.uroven_name,
-        'user_name': uchastiya.user.fio
+        'id': uchastie.id,
+        'rezults': uchastie.rezultat,
+        'year': uchastie.year,
+        'event_name': uchastie.meropriyatie.name,
+        'event_date': uchastie.meropriyatie.date,
+        'event_level': uchastie.meropriyatie.uroven.uroven_name,
+        'user_name': uchastie.user.fio
     }]), 200
 
 @ucastie_ped_bp.route('/api/uchastiya/ped/<int:id>', methods=['DELETE'])

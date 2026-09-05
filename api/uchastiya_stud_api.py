@@ -47,7 +47,7 @@ def stud_add():
     data = request.get_json()
     current_date = date.today()
     current_year = current_date.year
-    allow_years = [current_year-2, current_year-1, current_year]
+    allow_years = [current_year-5, current_year-4, current_year-3, current_year-2, current_year-1, current_year, current_year+1]
 
     if request.method == 'POST':
         meropriyatie = data['event_name']
@@ -81,12 +81,34 @@ def stud_add():
 
         if not fio or not str(fio).strip():
             return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+
+        if any(char.isdigit() for char in fio):
+            return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
+
         try:
             fio_ls = fio.split()
         except:
             return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
         if len(fio_ls) > 4:
-            return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+            return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+        if len(fio_ls) < 2:
+            return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+        if any(len(w) < 2 for w in fio_ls):
+            return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
+
+        if any(char.isdigit() for char in mentor):
+            return jsonify({'error': 'Поле Наставник не может содержать цифры'}), 400
+
+        try:
+            fio_ls_mentor = mentor.split()
+        except:
+            return jsonify({'error': 'Поле Наставник не может содержать цифры'}), 400
+        if len(fio_ls_mentor) > 4:
+            return jsonify({'error': 'Поле Наставник не может содержать больше 4х слов'}), 400
+        if len(fio_ls_mentor) < 2:
+            return jsonify({'error': 'Поле Наставник не может содержать меньше 2х слов'}), 400
+        if any(len(w) < 2 for w in fio_ls_mentor):
+            return jsonify({'error': 'Поле Наставник не может быть слишком коротких слов'}), 400
 
         if not year or not str(year).strip():
             return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
@@ -95,7 +117,7 @@ def stud_add():
         except:
             return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
         if int(year) not in allow_years:
-            return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[2]}'}), 400
+            return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         #########проверка на наличие уже в бд№##############
@@ -144,9 +166,7 @@ def stud_add():
                 id_mentor = us.id,
                 year=year
             )
-        print("MENTOR:", mentor)
-        print("USE:", use)
-        print("ID:", use.id)
+
         db.session.add(uchastie)
         db.session.commit()
     return jsonify([{
@@ -198,14 +218,33 @@ def stud_edit(id):
     if not rezultat or not str(rezultat).strip():
         return jsonify({'error': 'Поле Результат обязательно к заполнению'}), 400
 
-    if not fio or not str(fio).strip():
-        return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+    if any(char.isdigit() for char in fio):
+        return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
+
     try:
         fio_ls = fio.split()
     except:
         return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
     if len(fio_ls) > 4:
-        return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+        return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+    if len(fio_ls) < 2:
+        return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+    if any(len(w) < 2 for w in fio_ls):
+        return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
+
+    if any(char.isdigit() for char in mentor):
+        return jsonify({'error': 'Поле Наставник не может содержать цифры'}), 400
+
+    try:
+        fio_ls_mentor = mentor.split()
+    except:
+        return jsonify({'error': 'Поле Наставник не может содержать цифры'}), 400
+    if len(fio_ls_mentor) > 4:
+        return jsonify({'error': 'Поле Наставник не может содержать больше 4х слов'}), 400
+    if len(fio_ls_mentor) < 2:
+        return jsonify({'error': 'Поле Наставник не может содержать меньше 2х слов'}), 400
+    if any(len(w) < 2 for w in fio_ls_mentor):
+        return jsonify({'error': 'Поле Наставник не может быть слишком коротких слов'}), 400
 
     if not year or not str(year).strip():
         return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
@@ -214,22 +253,50 @@ def stud_edit(id):
     except:
         return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
     if int(year) not in allow_years:
-        return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[2]}'}), 400
+        return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
     # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
+    #########проверка на наличие уже в бд№##############
+    level = Uroven.query.filter_by(uroven_name=uroven).first()
+    if not level:
+        level = Uroven(uroven_name=uroven)
+        db.session.add(level)
+        db.session.commit()
 
-    uchastiya.meropriyatie.name = meropriyatie
-    uchastiya.meropriyatie.uroven.uroven_name = uroven
-    uchastiya.meropriyatie.date = sroki_provedeniya
-    rezultat = rezultat
-    diplomi = diplomi
-    nagradi = nagradi
+    user = User.query.filter_by(fio=fio, group=group).first()
+    if not user:
+        user = User(fio=fio, group=group)
+        db.session.add(user)
+        db.session.commit()
+
+    event = Meropriyatie.query.filter_by(
+        name=meropriyatie,
+        date=sroki_provedeniya,
+        id_uroven=level.id
+    ).first()
+    if not event:
+        event = Meropriyatie(
+            name=meropriyatie,
+            date=sroki_provedeniya,
+            id_uroven=level.id
+        )
+        db.session.add(event)
+        db.session.commit()
+    user_mentor = User.query.filter_by(fio=mentor).first()
+    if not user_mentor:
+        user_mentor = User(fio=mentor)
+        db.session.add(user_mentor)
+        db.session.commit()
+
     uchastiya.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
-    uchastiya.user.fio = fio
-    uchastiya.user.group = group
     uchastiya.year = year
-    uchastiya.mentor.fio = mentor
+    uchastiya.id_meropriyatie = event.id
+    uchastiya.id_user = user.id
+    uchastiya.id_mentor = user_mentor.id
+
     db.session.commit()
+
+
     return jsonify([{
         'id': uchastiya.id,
         'rezults': uchastiya.rezultat,
