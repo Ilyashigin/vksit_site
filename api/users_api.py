@@ -44,12 +44,20 @@ def post_user():
             print('группы нет')
         if not fio or not str(fio).strip():
             return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+
+        if any(char.isdigit() for char in fio):
+            return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
+
         try:
             fio_ls = fio.split()
         except:
             return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
         if len(fio_ls) > 4:
-            return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+            return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+        if len(fio_ls) > 2:
+            return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+        if any(len(w) < 2 for w in fio_ls):
+            return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
 
         if group:
             us = User(fio=fio, group=group)
@@ -59,7 +67,7 @@ def post_user():
         if not existing:
             db.session.add(us)
             db.session.commit()
-            print("Комит юзера")
+            print("Коммит юзера")
         else:
             print("Уже есть:", existing.fio)
 
@@ -83,19 +91,30 @@ def put_user(id):
     data = request.get_json()
 
     fio = data['fio']
-    group = None
-    if data['group']:
-        group = data['group']
-        if not group or not str(group).strip():
-            return jsonify({'error': 'Поле Группа обязательно к заполнению'}), 400
+    group = user.group
+    try:
+        if data['group']:
+            group = data['group']
+            if not group or not str(group).strip():
+                return jsonify({'error': 'Поле Группа обязательно к заполнению'}), 400
+    except:
+        group = None
     if not fio or not str(fio).strip():
         return jsonify({'error': 'Поле ФИО обязательно к заполнению'}), 400
+
+    if any(char.isdigit() for char in fio):
+        return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
+
     try:
         fio_ls = fio.split()
     except:
         return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
     if len(fio_ls) > 4:
-        return jsonify({'error': 'Поле ФИО не может содержать больще 4х слов'}), 400
+        return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
+    if len(fio_ls) > 2:
+        return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
+    if any(len(w) < 2 for w in fio_ls):
+        return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
 
     if group:
         user.fio = data['fio']
@@ -113,7 +132,6 @@ def put_user(id):
         }
 
     db.session.commit()
-
     return jsonify(result), 200
 
 @user_bp.route('/<int:id>', methods=['DELETE'])

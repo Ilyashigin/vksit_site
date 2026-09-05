@@ -1,9 +1,43 @@
-document.addEventListener('DOMContentLoaded', loadUsers);
-
+// ======================================
+// КОНСТАНТЫ И СОСТОЯНИЕ
+// ======================================
 const API_URL = '/api/user';
 let currentUserData = [];
+let optionsData = { groups: [] };
 
-// 1. Загрузка и разделение данных
+// DOM-элементы (кэшируем при загрузке)
+const modalEl = document.getElementById('userModal');
+const modalTitle = document.getElementById('modalTitle');
+const form = document.getElementById('userForm');
+const datalistGroups = document.getElementById('dl_groups');
+
+// ======================================
+// 1. ЗАГРУЗКА СПИСКОВ (ГРУПП) ДЛЯ DATALIST
+// ======================================
+async function loadOptions() {
+    try {
+        const res = await fetch('/api/options');
+        if (!res.ok) throw new Error('Ошибка загрузки списков');
+        
+        optionsData = await res.json();
+        
+        // Заполняем <datalist id="dl_groups">
+        if (datalistGroups && optionsData.groups && Array.isArray(optionsData.groups)) {
+            datalistGroups.innerHTML = '';
+            optionsData.groups.forEach(g => {
+                const option = document.createElement('option');
+                option.value = g.name || g; // Поддержка разных форматов ответа
+                datalistGroups.appendChild(option);
+            });
+        }
+    } catch (err) {
+        console.warn('Не удалось загрузить подсказки для групп:', err);
+    }
+}
+
+// ======================================
+// 2. ЗАГРУЗКА И ОТОБРАЖЕНИЕ ПОЛЬЗОВАТЕЛЕЙ
+// ======================================
 async function loadUsers() {
     const staffBody = document.getElementById('staff-body');
     const studentBody = document.getElementById('student-body');
@@ -12,13 +46,18 @@ async function loadUsers() {
     const staffTable = document.getElementById('staff-table');
     const studentTable = document.getElementById('student-table');
 
-    loadStaff.style.display = 'block'; loadStudent.style.display = 'block';
-    staffTable.style.display = 'none'; studentTable.style.display = 'none';
-    staffBody.innerHTML = ''; studentBody.innerHTML = '';
+    // Показываем спиннеры, скрываем таблицы
+    loadStaff.style.display = 'block'; 
+    loadStudent.style.display = 'block';
+    staffTable.style.display = 'none'; 
+    studentTable.style.display = 'none';
+    staffBody.innerHTML = ''; 
+    studentBody.innerHTML = '';
 
     try {
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error('Ошибка загрузки данных');
+        
         currentUserData = await res.json();
 
         currentUserData.forEach(u => {
@@ -42,16 +81,16 @@ async function loadUsers() {
         staffBody.innerHTML = `<tr><td colspan="3" class="text-danger text-center">${err.message}</td></tr>`;
         studentBody.innerHTML = `<tr><td colspan="4" class="text-danger text-center">${err.message}</td></tr>`;
     } finally {
-        loadStaff.style.display = 'none'; loadStudent.style.display = 'none';
-        staffTable.style.display = 'table'; studentTable.style.display = 'table';
+        loadStaff.style.display = 'none'; 
+        loadStudent.style.display = 'none';
+        staffTable.style.display = 'table'; 
+        studentTable.style.display = 'table';
     }
 }
 
-// 2. Управление модальным окном
-const modalEl = document.getElementById('userModal');
-const modalTitle = document.getElementById('modalTitle');
-const form = document.getElementById('userForm');
-
+// ======================================
+// 3. УПРАВЛЕНИЕ МОДАЛЬНЫМ ОКНОМ
+// ======================================
 function openModal(type, id = null) {
     form.reset();
     document.getElementById('editId').value = '';
@@ -66,6 +105,7 @@ function openModal(type, id = null) {
         }
     } else {
         modalTitle.innerText = 'Добавить участника';
+        document.getElementById('m_group').value = ''; // Сброс при добавлении
     }
 
     // Bootstrap 5 modal show
@@ -77,7 +117,9 @@ function openModal(type, id = null) {
     }
 }
 
-// 3. Сохранение (POST / PUT)
+// ======================================
+// 4. СОХРАНЕНИЕ (POST / PUT)
+// ======================================
 async function saveUser() {
     const id = document.getElementById('editId').value;
     const fio = document.getElementById('m_fio').value.trim();
@@ -108,12 +150,14 @@ async function saveUser() {
     }
 }
 
-// 4. Удаление (DELETE)
+// ======================================
+// 5. УДАЛЕНИЕ (DELETE)
+// ======================================
 async function deleteUser(id) {
     if (!confirm('Вы уверены, что хотите удалить этого участника?')) return;
+    
     try {
         const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-
         if (res.ok) {
             loadUsers();
         } else {
@@ -125,12 +169,24 @@ async function deleteUser(id) {
     }
 }
 
-// Вспомогательная функция скрытия модалки
+// ======================================
+// 6. ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ СКРЫТИЯ МОДАЛКИ
+// ======================================
 function hideModal() {
     if (typeof bootstrap !== 'undefined') {
         const instance = bootstrap.Modal.getInstance(modalEl);
         if (instance) instance.hide();
     } else {
         modalEl.style.display = 'none';
+        modalEl.classList.remove('show');
     }
 }
+
+// ======================================
+// ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+// ======================================
+document.addEventListener('DOMContentLoaded', async () => {
+    // Сначала грузим подсказки, потом таблицу пользователей
+    await loadOptions();
+    await loadUsers();
+});
