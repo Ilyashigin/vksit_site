@@ -1,4 +1,7 @@
-document.addEventListener('DOMContentLoaded', loadTable);
+document.addEventListener('DOMContentLoaded', () => {
+    loadOptions();
+    loadTable();
+});
 
 const USER_TYPE = window.USER_TYPE || 'ped';
 const API_BASE = window.API_BASE || '/api/uchastiya/ped';
@@ -6,14 +9,74 @@ const API_BASE = window.API_BASE || '/api/uchastiya/ped';
 let optionsData = {
     users: [],
     events: [],
-    levels: []
+    levels: [],
+    years: []
 };
+
+function populatePeriodSelects(years) {
+    const filter = document.getElementById('filterYear');
+    const rep = document.getElementById('repYear');
+
+    if (!filter || !rep) {
+        return;
+    }
+
+    filter.innerHTML = '<option value="">Все периоды</option>' +
+        years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    rep.innerHTML = years.length
+        ? years.map(y => `<option value="${y}">${y}</option>`).join('')
+        : '<option value="">Нет периодов в БД</option>';
+}
 
 // ======================================
 // ЗАГРУЗКА ТАБЛИЦЫ
 // ======================================
-async function loadTable() {
+function renderTable(data) {
+    const tbody = document.getElementById('table-body');
+    const table = document.getElementById('main-table');
 
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+        let row = `
+            <td>${item.id}</td>
+            <td>${item.event_name}</td>
+            <td>${item.event_level}</td>
+            <td>${item.event_date}</td>
+            <td>${item.user_name} | ${item.rezults}</td>
+        `;
+
+        if (USER_TYPE === 'stud') {
+            row += `
+                <td>${item.group || '-'}</td>
+                <td>${item.mentor || '-'}</td>
+            `;
+        }
+
+        row += `
+            <td>
+                <button class="btn btn-sm btn-warning mx-1"
+                        onclick="openEditModal(${item.id})">
+                    Ред.
+                </button>
+
+                <button class="btn btn-sm btn-danger mx-1"
+                        onclick="deleteEvent(${item.id})">
+                    Уд.
+                </button>
+            </td>
+        `;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = row;
+        tbody.appendChild(tr);
+    });
+
+    table.style.display = 'table';
+}
+
+async function loadTable() {
     const tbody = document.getElementById('table-body');
     const spinner = document.getElementById('loading');
     const table = document.getElementById('main-table');
@@ -23,7 +86,6 @@ async function loadTable() {
     tbody.innerHTML = '';
 
     try {
-
         const res = await fetch(API_BASE);
 
         if (!res.ok) {
@@ -31,48 +93,9 @@ async function loadTable() {
         }
 
         const data = await res.json();
-
-        data.forEach(item => {
-
-            let row = `
-                <td>${item.id}</td>
-                <td>${item.event_name}</td>
-                <td>${item.event_level}</td>
-                <td>${item.event_date}</td>
-                <td>${item.user_name} | ${item.rezults}</td>
-            `;
-
-            // ДЛЯ СТУДЕНТОВ
-            if (USER_TYPE === 'stud') {
-
-                row += `
-                    <td>${item.group || '-'}</td>
-                    <td>${item.mentor || '-'}</td>
-                `;
-            }
-
-            row += `
-                <td>
-                    <button class="btn btn-sm btn-warning mx-1"
-                            onclick="openEditModal(${item.id})">
-                        Ред.
-                    </button>
-
-                    <button class="btn btn-sm btn-danger mx-1"
-                            onclick="deleteEvent(${item.id})">
-                        Уд.
-                    </button>
-                </td>
-            `;
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = row;
-
-            tbody.appendChild(tr);
-        });
+        renderTable(data);
 
     } catch (err) {
-
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-danger text-center">
@@ -80,12 +103,64 @@ async function loadTable() {
                 </td>
             </tr>
         `;
+        table.style.display = 'table';
 
     } finally {
-
         spinner.style.display = 'none';
-        table.style.display = 'table';
     }
+}
+
+// ======================================
+// СОРТИРОВКА
+// ======================================
+async function fetchSorted(url) {
+    const tbody = document.getElementById('table-body');
+    const spinner = document.getElementById('loading');
+    const table = document.getElementById('main-table');
+
+    spinner.style.display = 'block';
+    table.style.display = 'none';
+    tbody.innerHTML = '';
+
+    try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData[0]?.error || 'Ничего не найдено');
+        }
+
+        const data = await res.json();
+        renderTable(data);
+
+    } catch (err) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-warning text-center">
+                    ${err.message}
+                </td>
+            </tr>
+        `;
+        table.style.display = 'table';
+
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+function sortById() {
+    fetchSorted(`/api/sort_by_id?user_type=${USER_TYPE}`);
+}
+
+function sortByYear() {
+    const year = document.getElementById('filterYear').value;
+
+    if (!year) {
+        alert('Выберите учебный период');
+        return;
+    }
+
+    fetchSorted(`/api/sort_by_year?year=${encodeURIComponent(year)}&user_type=${USER_TYPE}`);
 }
 
 // ======================================
@@ -114,6 +189,16 @@ async function loadOptions() {
             optionsData.levels
                 .map(l => `<option value="${l.name}">`)
                 .join('');
+
+        // УЧЕБНЫЕ ГОДА
+        const years = optionsData.years || [];
+        const dlYears = document.getElementById('dl_years');
+        if (dlYears) {
+            dlYears.innerHTML = years
+                .map(y => `<option value="${y}">`)
+                .join('');
+        }
+        populatePeriodSelects(years);
 
         // ======================================
         // ПОЛЬЗОВАТЕЛИ
@@ -366,6 +451,7 @@ async function saveEvent() {
         hideModal();
 
         loadTable();
+        loadOptions();
 
     } catch (err) {
 
@@ -435,5 +521,48 @@ function hideModal() {
     } else {
 
         document.getElementById('eventModal').style.display = 'none';
+    }
+}
+
+// ======================================
+// СКАЧИВАНИЕ ОТЧЕТА
+// ======================================
+async function startDownload() {
+    const year = document.getElementById('repYear').value;
+    const type = document.getElementById('repType').value;
+    const sort = document.getElementById('repSort').value;
+
+    if (!year) {
+        alert('Нет доступных учебных периодов в базе данных');
+        return;
+    }
+
+    const url = `/api/report/download?year=${encodeURIComponent(year)}&type=${type}&sort=${sort}`;
+
+    try {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Ошибка формирования отчета');
+        }
+
+        const blob = await res.blob();
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = `otchet_${year}_${type}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(link.href);
+
+        const modal = document.getElementById('reportModal');
+        if (typeof bootstrap !== 'undefined') {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) modalInstance.hide();
+        }
+
+    } catch (err) {
+        alert(err.message);
     }
 }

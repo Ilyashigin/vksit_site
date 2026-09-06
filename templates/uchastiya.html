@@ -3,12 +3,33 @@
 
 <h1>{{ title }}</h1>
 
-<div class="d-flex gap-2 mb-3">
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
     <button type="button" class="btn btn-primary" onclick="openAddModal()">
         Добавить мероприятие
     </button>
 
-    <a href="#" class="btn btn-secondary">Скачать отчет</a>
+    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#reportModal">
+        Скачать отчет
+    </button>
+
+    <div class="vr mx-1 d-none d-md-block"></div>
+
+    <label class="form-label mb-0 ms-md-2" for="filterYear">Период:</label>
+    <select class="form-select" id="filterYear" style="max-width: 160px;">
+        <option value="">Все периоды</option>
+    </select>
+
+    <button type="button" class="btn btn-outline-primary" onclick="sortByYear()">
+        Сортировать по периоду
+    </button>
+
+    <button type="button" class="btn btn-outline-primary" onclick="sortById()">
+        Сортировать по ID
+    </button>
+
+    <button type="button" class="btn btn-outline-secondary" onclick="loadTable()">
+        Сбросить
+    </button>
 </div>
 
 <div id="loading" class="text-center my-3">
@@ -172,12 +193,17 @@
 
                     <!-- ГОД -->
                     <div class="mb-2">
-                        <label class="form-label">Год</label>
+                        <label class="form-label"> Учебный Год</label>
 
-                        <input type="number"
+                        <input type="text"
                                class="form-control"
                                id="m_year"
+                               list="dl_years"
+                               autocomplete="off"
+                               placeholder="Учебный год формата XXXX-XXXX"
                                required>
+
+                        <datalist id="dl_years"></datalist>
                     </div>
 
                 </form>
@@ -198,6 +224,50 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Настройки отчета</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reportForm">
+                    <!-- Выбор года -->
+                    <div class="mb-3">
+                        <label class="form-label">Учебный год</label>
+                        <select class="form-select" id="repYear"></select>
+                    </div>
+
+                    <!-- Тип отчета -->
+                    <div class="mb-3">
+                        <label class="form-label">Тип отчета</label>
+                        <select class="form-select" id="repType">
+                            <option value="all">Все вместе (Пед + Студ)</option>
+                            <option value="ped">Только Педагоги</option>
+                            <option value="stud">Только Студенты</option>
+                        </select>
+                    </div>
+
+                    <!-- Сортировка -->
+                    <div class="mb-3">
+                        <label class="form-label">Сортировка</label>
+                        <select class="form-select" id="repSort">
+                            <option value="id">По ID (порядок добавления)</option>
+                            <option value="date">По дате мероприятия</option>
+                            <option value="level">По уровню</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="startDownload()">Скачать</button>
+            </div>
         </div>
     </div>
 </div>

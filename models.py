@@ -8,7 +8,8 @@ db = SQLAlchemy()
 class Ucastie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     rezultat = db.Column(db.String(300), nullable=False)
-    year = db.Column(db.Integer, nullable=False)
+    year1 = db.Column(db.Integer, nullable=False)
+    year2 = db.Column(db.Integer, nullable=False)
 
     id_meropriyatie = db.Column(db.Integer, db.ForeignKey('meropriyatie.id'), nullable=False)
 

@@ -13,7 +13,7 @@ def stud():
         item = {
             'id': u.id,
             'rezults': u.rezultat,
-            'year': u.year,
+            'year': f'{u.year1}-{u.year2}',
             'event_name': u.meropriyatie.name,
             'event_date': u.meropriyatie.date,
             'event_level': u.meropriyatie.uroven.uroven_name,
@@ -31,7 +31,7 @@ def stud_by_id(id):
     item = {
         'id': u.id,
         'rezults': u.rezultat,
-        'year': u.year,
+        'year': f'{u.year1}-{u.year2}',
         'event_name': u.meropriyatie.name,
         'event_date': u.meropriyatie.date,
         'event_level': u.meropriyatie.uroven.uroven_name,
@@ -113,11 +113,18 @@ def stud_add():
         if not year or not str(year).strip():
             return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
         try:
-            int(year)
+            year1, year2 = year.split('-')
         except:
-            return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
-        if int(year) not in allow_years:
-            return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+            return jsonify({'error': 'Поле Учебный Год должно быть формата XXXX-XXXX'}), 400
+        if int(year1) not in allow_years:
+            return jsonify(
+                {'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+        if int(year2) not in allow_years:
+            return jsonify(
+                {'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+        if (int(year2) - int(year1)) != 1:
+            return jsonify(
+                {'error': f'Недопустимый учебный период'}), 400
         #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         #########проверка на наличие уже в бд№##############
@@ -153,7 +160,8 @@ def stud_add():
                 id_meropriyatie=event.id,
                 id_user=user.id,
                 id_mentor=use.id,
-                year=year
+                year1=year1,
+                year2=year2
             )
         else:
             us = User(fio=mentor)
@@ -164,7 +172,8 @@ def stud_add():
                 id_meropriyatie=event.id,
                 id_user=user.id,
                 id_mentor = us.id,
-                year=year
+                year1=year1,
+                year2=year2
             )
 
         db.session.add(uchastie)
@@ -172,7 +181,7 @@ def stud_add():
     return jsonify([{
         'id': uchastie.id,
         'rezults': uchastie.rezultat,
-        'year': uchastie.year,
+        'year': f'{uchastie.year1}-{uchastie.year2}',
         'event_name': uchastie.meropriyatie.name,
         'event_date': uchastie.meropriyatie.date,
         'event_level': uchastie.meropriyatie.uroven.uroven_name,
@@ -249,11 +258,18 @@ def stud_edit(id):
     if not year or not str(year).strip():
         return jsonify({'error': 'Поле Учебный Год обязательно к заполнению'}), 400
     try:
-        int(year)
+        year1, year2 = year.split('-')
     except:
-        return jsonify({'error': 'Поле Учебный Год должно быть числовым'}), 400
-    if int(year) not in allow_years:
-        return jsonify({'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+        return jsonify({'error': 'Поле Учебный Год должно быть формата XXXX-XXXX'}), 400
+    if int(year1) not in allow_years:
+        return jsonify(
+            {'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+    if int(year2) not in allow_years:
+        return jsonify(
+            {'error': f'Учебный Год не может быть меньше {allow_years[0]} и больше {allow_years[-1]}'}), 400
+    if (int(year2) - int(year1)) != 1:
+        return jsonify(
+            {'error': f'Недопустимый учебный период'}), 400
     # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
     #########проверка на наличие уже в бд№##############
@@ -289,7 +305,8 @@ def stud_edit(id):
         db.session.commit()
 
     uchastiya.rezultat = f'{rezultat}, {diplomi}, {nagradi}'
-    uchastiya.year = year
+    uchastiya.year1 = year1
+    uchastiya.year2 = year2
     uchastiya.id_meropriyatie = event.id
     uchastiya.id_user = user.id
     uchastiya.id_mentor = user_mentor.id
@@ -300,7 +317,7 @@ def stud_edit(id):
     return jsonify([{
         'id': uchastiya.id,
         'rezults': uchastiya.rezultat,
-        'year': uchastiya.year,
+        'year': f'{uchastiya.year1}-{uchastiya.year2}',
         'event_name': uchastiya.meropriyatie.name,
         'event_date': uchastiya.meropriyatie.date,
         'event_level': uchastiya.meropriyatie.uroven.uroven_name,
