@@ -54,7 +54,7 @@ def post_user():
             return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
         if len(fio_ls) > 4:
             return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
-        if len(fio_ls) > 2:
+        if len(fio_ls) < 2:
             return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
         if any(len(w) < 2 for w in fio_ls):
             return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
@@ -111,7 +111,7 @@ def put_user(id):
         return jsonify({'error': 'Поле ФИО не может содержать цифры'}), 400
     if len(fio_ls) > 4:
         return jsonify({'error': 'Поле ФИО не может содержать больше 4х слов'}), 400
-    if len(fio_ls) > 2:
+    if len(fio_ls) < 2:
         return jsonify({'error': 'Поле ФИО не может содержать меньше 2х слов'}), 400
     if any(len(w) < 2 for w in fio_ls):
         return jsonify({'error': 'Поле ФИО не может быть слишком коротких слов'}), 400
