@@ -1,93 +1,101 @@
 {% extends 'base.html' %}
+{% block title %}Список участников{% endblock %}
 {% block content %}
-<h1 class="mb-4">Список участников</h1>
 
-<div class="d-flex gap-2 mb-3">
-    <button type="button" class="btn btn-primary" onclick="openModal('add')">Добавить участника</button>
+<h1 class="page-title">Список участников</h1>
+
+<div class="toolbar">
+    <button type="button" class="btn btn--primary" onclick="openUserModal('add', null, 'teacher')">
+        Добавить преподавателя
+    </button>
+    <button type="button" class="btn btn--primary" onclick="openUserModal('add', null, 'student')">
+        Добавить студента
+    </button>
 </div>
 
 <div class="row">
-    <!-- Левая колонка: Преподаватели -->
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light fw-bold text-center">👨‍🏫 Преподаватели</div>
-            <div class="card-body p-0">
-                <div id="loading-staff" class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status"></div>
+    <div class="col">
+        <div class="card">
+            <div class="card__header">Преподаватели</div>
+            <div class="card__body">
+                <div id="loading-staff" class="loading">
+                    <div class="spinner"></div>
                 </div>
-                <table class="table table-striped table-hover mb-0" id="staff-table" style="display: none;">
-                    <thead class="table-light">
-                    <tr>
-                        <th>№</th>
-                        <th>ФИО</th>
-                        <th class="text-end">Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody id="staff-body"></tbody>
-                </table>
+                <div class="table-wrap">
+                    <table class="table" id="staff-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>ФИО</th>
+                                <th class="table__actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Правая колонка: Студенты -->
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light fw-bold text-center">🎓 Студенты</div>
-            <div class="card-body p-0">
-                <div id="loading-students" class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status"></div>
+    <div class="col">
+        <div class="card">
+            <div class="card__header">Студенты</div>
+            <div class="card__body">
+                <div id="loading-students" class="loading">
+                    <div class="spinner"></div>
                 </div>
-                <table class="table table-striped table-hover mb-0" id="student-table" style="display: none;">
-                    <thead class="table-light">
-                    <tr>
-                        <th>№</th>
-                        <th>ФИО</th>
-                        <th>Группа</th>
-                        <th class="text-end">Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody id="student-body"></tbody>
-                </table>
+                <div class="table-wrap">
+                    <table class="table" id="student-table" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>ФИО</th>
+                                <th>Группа</th>
+                                <th class="table__actions">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Модальное окно (единое для добавления/редактирования) -->
-<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Добавить участника</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="userForm">
-                    <input type="hidden" id="editId">
-                    <div class="mb-3">
-                        <label class="form-label">ФИО</label>
-                        <input type="text" class="form-control" id="m_fio" required placeholder="Иванов Иван Иванович">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Группа <span class="text-muted small">(оставьте пустым для преподавателя)</span></label>
-                        <input type="text"
-                               class="form-control"
-                               id="m_group"
-                               list="dl_groups"
-                               autocomplete="off"
-                               placeholder="Например: ИСП-323т">
-                        <datalist id="dl_groups"></datalist>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="saveUser()"> Сохранить</button>
-            </div>
+<div class="modal" id="userModal">
+    <div class="modal__overlay"></div>
+    <div class="modal__dialog">
+        <div class="modal__header">
+            <h5 class="modal__title" id="modalTitle">Добавить участника</h5>
+            <button type="button" class="modal__close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal__body">
+            <form id="userForm">
+                <input type="hidden" id="editId">
+                <input type="hidden" id="userRole" value="teacher">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">ФИО</label>
+                    <input type="text" class="form-control" id="m_fio" required
+                           placeholder="Иванов Иван Иванович">
+                </div>
+                <div class="form-group" id="groupField">
+                    <label class="form-label">Группа</label>
+                    <input type="text" class="form-control" id="m_group"
+                           list="dl_groups" autocomplete="off"
+                           placeholder="Например: ИСП-323т">
+                    <datalist id="dl_groups"></datalist>
+                </div>
+            </form>
+        </div>
+        <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" data-modal-close>Отмена</button>
+            <button type="button" class="btn btn--primary" onclick="saveUser()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- Подключаем отдельный скрипт для этой страницы -->
+{% endblock %}
+
+{% block scripts %}
 <script src="{{ url_for('static', filename='users_view.js') }}"></script>
 {% endblock %}

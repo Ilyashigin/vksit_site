@@ -92,8 +92,10 @@ def _group_rows(rows):
     return result
 
 
-def _fetch_records(year1, year2, report_type, sort):
+def _fetch_records(year1, year2, report_type, sort, user_id=None):
     query = Ucastie.query.filter_by(year1=year1, year2=year2)
+    if user_id:
+        query = query.filter_by(id_user=user_id)
 
     if sort == 'id':
         query = query.order_by(Ucastie.id)
@@ -159,11 +161,11 @@ def _replace_title_paragraph(doc, old_fragment, new_text):
     return False
 
 
-def _generate_report(year1, year2, report_type, sort):
+def _generate_report(year1, year2, report_type, sort, user_id=None):
     from docx import Document
 
     period = f'{year1}-{year2}'
-    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort)
+    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort, user_id)
 
     if not ped_rows and not stud_rows:
         return None
@@ -197,13 +199,13 @@ def _generate_report(year1, year2, report_type, sort):
     return buffer
 
 
-def _generate_report_from_scratch(year1, year2, report_type, sort):
+def _generate_report_from_scratch(year1, year2, report_type, sort, user_id=None):
     from docx import Document
     from docx.shared import Pt, Cm
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     period = f'{year1}-{year2}'
-    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort)
+    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort, user_id)
 
     if not ped_rows and not stud_rows:
         return None
@@ -254,6 +256,8 @@ def download_report():
     period = request.args.get('year', '').strip()
     report_type = request.args.get('type', 'all').strip()
     sort = request.args.get('sort', 'id').strip()
+    user_id = request.args.get('user_id', '').strip()
+    user_id = int(user_id) if user_id.isdigit() else None
 
     if report_type not in ('all', 'ped', 'stud'):
         return {'error': 'Неверный тип отчета'}, 400
@@ -266,10 +270,10 @@ def download_report():
         return {'error': 'Период должен быть в формате XXXX-XXXX'}, 400
 
     try:
-        if report_type == 'all' and os.path.exists(TEMPLATE_PATH):
-            buffer = _generate_report(year1, year2, report_type, sort)
+        if report_type == 'all' and os.path.exists(TEMPLATE_PATH) and not user_id:
+            buffer = _generate_report(year1, year2, report_type, sort, user_id)
         else:
-            buffer = _generate_report_from_scratch(year1, year2, report_type, sort)
+            buffer = _generate_report_from_scratch(year1, year2, report_type, sort, user_id)
     except ImportError:
         return {
             'error': 'Установите python-docx: pip install python-docx'

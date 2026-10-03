@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    // Сначала грузим подсказки, потом таблицу мероприятий
     await loadOptions();
     loadEvents();
 });
@@ -7,44 +6,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 const API_URL = '/api/mer';
 let currentEventData = [];
 
-// DOM-элементы
-const modalEl = document.getElementById('eventModal');
 const modalTitle = document.getElementById('modalTitle');
 const form = document.getElementById('eventForm');
 const datalistLevels = document.getElementById('dl_levels');
 
-// ======================================
-// 1. ЗАГРУЗКА СПИСКОВ (УРОВНИ) ДЛЯ DATALIST
-// ======================================
 async function loadOptions() {
     try {
-        const res = await fetch('/api/options'); // Тот же эндпоинт, что в main.js
+        const res = await fetch('/api/options');
         if (!res.ok) throw new Error('Ошибка загрузки списков');
-
         const data = await res.json();
 
-        // Заполняем <datalist id="dl_levels">
-        if (datalistLevels && data.levels && Array.isArray(data.levels)) {
-            datalistLevels.innerHTML = '';
-            data.levels.forEach(l => {
-                const option = document.createElement('option');
-                option.value = l.name || l; // Поддержка разных форматов ответа
-                datalistLevels.appendChild(option);
-            });
+        if (datalistLevels && data.levels) {
+            datalistLevels.innerHTML = data.levels
+                .map(l => `<option value="${l.name || l}">`)
+                .join('');
         }
     } catch (err) {
         console.warn('Не удалось загрузить подсказки для уровней:', err);
-        // Fallback: если API недоступен, можно добавить статичные варианты
-        // ['Муниципальный', 'Региональный', 'Всероссийский', 'Международный'].forEach(val => {
-        //     const opt = document.createElement('option');
-        //     opt.value = val; datalistLevels.appendChild(opt);
-        // });
     }
 }
 
-// ======================================
-// 2. ЗАГРУЗКА МЕРОПРИЯТИЙ
-// ======================================
 async function loadEvents() {
     const tableBody = document.getElementById('event-body');
     const loading = document.getElementById('loading-events');
@@ -57,7 +38,6 @@ async function loadEvents() {
     try {
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error('Ошибка загрузки мероприятий');
-
         currentEventData = await res.json();
 
         currentEventData.forEach(event => {
@@ -67,37 +47,22 @@ async function loadEvents() {
                 <td>${event.event_name}</td>
                 <td>${event.event_level || '-'}</td>
                 <td>${event.event_date}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-warning"
-                            onclick="openModal('edit', ${event.id})">
-                        ✏️
-                    </button>
-                    <button class="btn btn-sm btn-danger"
-                            onclick="deleteEvent(${event.id})">
-                        ️🗑️
-                    </button>
+                <td class="table__actions">
+                    <button class="btn btn--sm btn--warning" onclick="openEventModal('edit', ${event.id})">Ред.</button>
+                    <button class="btn btn--sm btn--danger" onclick="deleteEvent(${event.id})">Уд.</button>
                 </td>
             `;
             tableBody.appendChild(row);
         });
     } catch (err) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="4" class="text-danger text-center">
-                    ${err.message}
-                </td>
-            </tr>
-        `;
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-danger text-center">${err.message}</td></tr>`;
     } finally {
         loading.style.display = 'none';
         table.style.display = 'table';
     }
 }
 
-// ======================================
-// 3. МОДАЛЬНОЕ ОКНО
-// ======================================
-function openModal(type, id = null) {
+function openEventModal(type, id = null) {
     form.reset();
     document.getElementById('editId').value = '';
 
@@ -108,25 +73,15 @@ function openModal(type, id = null) {
             document.getElementById('editId').value = event.id;
             document.getElementById('m_name').value = event.event_name;
             document.getElementById('m_date').value = event.event_date;
-            // Уровень подставится автоматически, если он есть в datalist
             document.getElementById('m_level').value = event.event_level || '';
         }
     } else {
         modalTitle.innerText = 'Добавить мероприятие';
-        document.getElementById('m_level').value = ''; // Сброс при добавлении
     }
 
-    if (typeof bootstrap !== 'undefined') {
-        new bootstrap.Modal(modalEl).show();
-    } else {
-        modalEl.style.display = 'block';
-        modalEl.classList.add('show');
-    }
+    openModal('eventModal');
 }
 
-// ======================================
-// 4. СОХРАНЕНИЕ (POST / PUT)
-// ======================================
 async function saveEvent() {
     const id = document.getElementById('editId').value;
     const eventName = document.getElementById('m_name').value.trim();
@@ -148,23 +103,20 @@ async function saveEvent() {
 
     try {
         const res = await fetch(url, {
-            method: method,
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Ошибка сохранения');
 
-        hideModal();
+        closeModal('eventModal');
         loadEvents();
     } catch (err) {
         alert(err.message);
     }
 }
 
-// ======================================
-// 5. УДАЛЕНИЕ
-// ======================================
 async function deleteEvent(id) {
     if (!confirm('Вы уверены, что хотите удалить мероприятие?')) return;
 
@@ -178,18 +130,5 @@ async function deleteEvent(id) {
         }
     } catch (err) {
         alert('Ошибка сети: ' + err.message);
-    }
-}
-
-// ======================================
-// 6. СКРЫТИЕ МОДАЛКИ
-// ======================================
-function hideModal() {
-    if (typeof bootstrap !== 'undefined') {
-        const instance = bootstrap.Modal.getInstance(modalEl);
-        if (instance) instance.hide();
-    } else {
-        modalEl.style.display = 'none';
-        modalEl.classList.remove('show');
     }
 }
