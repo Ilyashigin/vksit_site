@@ -1,282 +1,205 @@
 {% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
 
-<h1>{{ title }}</h1>
+<h1 class="page-title">{{ title }}</h1>
 
-<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-    <button type="button" class="btn btn-primary" onclick="openAddModal()">
+<div class="toolbar">
+    <button type="button" class="btn btn--primary" onclick="openAddModal()">
         Добавить мероприятие
     </button>
-
-    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#reportModal">
+    <button type="button" class="btn btn--success" onclick="openModal('reportModal')">
         Скачать отчет
     </button>
-
-    <div class="vr mx-1 d-none d-md-block"></div>
-
-    <label class="form-label mb-0 ms-md-2" for="filterYear">Период:</label>
-    <select class="form-select" id="filterYear" style="max-width: 160px;">
-        <option value="">Все периоды</option>
-    </select>
-
-    <button type="button" class="btn btn-outline-primary" onclick="sortByYear()">
-        Сортировать по периоду
-    </button>
-
-    <button type="button" class="btn btn-outline-primary" onclick="sortById()">
-        Сортировать по ID
-    </button>
-
-    <button type="button" class="btn btn-outline-secondary" onclick="loadTable()">
-        Сбросить
-    </button>
 </div>
 
-<div id="loading" class="text-center my-3">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Загрузка...</span>
+<div class="search-panel">
+    <p class="search-panel__title">Поиск и фильтр</p>
+    <div class="search-panel__fields">
+        <div class="form-group">
+            <label class="form-label" for="filterYear">Период</label>
+            <select class="form-select" id="filterYear">
+                <option value="">Все периоды</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="searchLevel">Уровень</label>
+            <input type="text" class="form-control" id="searchLevel" list="dl_search_levels" autocomplete="off">
+            <datalist id="dl_search_levels"></datalist>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="searchEvent">Мероприятие</label>
+            <input type="text" class="form-control" id="searchEvent" list="dl_search_events" autocomplete="off">
+            <datalist id="dl_search_events"></datalist>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="searchFio">ФИО {% if user_type == 'stud' %}студента{% else %}работника{% endif %}</label>
+            <input type="text" class="form-control" id="searchFio" list="dl_search_users" autocomplete="off">
+            <datalist id="dl_search_users"></datalist>
+        </div>
+        {% if user_type == 'stud' %}
+        <div class="form-group">
+            <label class="form-label" for="searchMentor">ФИО наставника</label>
+            <input type="text" class="form-control" id="searchMentor" list="dl_search_mentors" autocomplete="off">
+            <datalist id="dl_search_mentors"></datalist>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="searchGroup">Группа</label>
+            <input type="text" class="form-control" id="searchGroup" list="dl_search_groups" autocomplete="off">
+            <datalist id="dl_search_groups"></datalist>
+        </div>
+        {% endif %}
+        <button type="button" class="btn btn--primary" onclick="applyFilter()">Найти</button>
+        <button type="button" class="btn btn--secondary" onclick="resetSearch()">Сбросить</button>
     </div>
 </div>
 
-<table class="table table-striped table-hover" id="main-table" style="display:none;">
-    <thead class="table-light">
-        <tr>
-            <th>№</th>
-            <th>Мероприятие</th>
-            <th>Уровень</th>
-            <th>Сроки проведения</th>
-            <th>Результаты, ФИО, Дипломы, Награды</th>
+<div id="loading" class="loading" style="display:none;">
+    <div class="spinner"></div>
+</div>
 
-            {% if user_type == 'stud' %}
-                <th>Группа</th>
-                <th>Наставник</th>
-            {% endif %}
+<div class="card table-wrap">
+    <table class="table" id="main-table" style="display:none;">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Мероприятие</th>
+                <th>Уровень</th>
+                <th>Сроки проведения</th>
+                <th>Результаты, ФИО, Дипломы, Награды</th>
+                {% if user_type == 'stud' %}
+                    <th>Группа</th>
+                    <th>Наставник</th>
+                {% endif %}
+                <th class="table__actions">Действия</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+</div>
 
-            <th>Действия</th>
-        </tr>
-    </thead>
-
-    <tbody id="table-body"></tbody>
-</table>
-
-<!-- МОДАЛКА -->
-<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalTitle">Добавить мероприятие</h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-
-                <form id="eventForm">
-
-                    <input type="hidden" id="editId">
-
-                    <!-- МЕРОПРИЯТИЕ -->
-                    <div class="mb-2">
-                        <label class="form-label">Мероприятие</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_name"
-                               list="dl_events"
-                               autocomplete="off"
-                               required>
-
-                        <datalist id="dl_events"></datalist>
-                    </div>
-
-                    <!-- УРОВЕНЬ -->
-                    <div class="mb-2">
-                        <label class="form-label">Уровень</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_level"
-                               list="dl_levels"
-                               autocomplete="off"
-                               required>
-
-                        <datalist id="dl_levels"></datalist>
-                    </div>
-
-                    <!-- ДАТА -->
-                    <div class="mb-2">
-                        <label class="form-label">Сроки проведения</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_date"
-                               autocomplete="off"
-                               required>
-                    </div>
-
-                    <!-- ФИО -->
-                    <div class="mb-2">
-                        <label class="form-label">ФИО</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_fio"
-                               list="dl_users"
-                               autocomplete="off"
-                               required>
-
-                        <datalist id="dl_users"></datalist>
-                    </div>
-
-                    {% if user_type == 'stud' %}
-
-                    <!-- ГРУППА -->
-                    <div class="mb-2">
-                        <label class="form-label">Группа</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_group"
-                               list="dl_groups"
-                               autocomplete="off"
-                               required>
-
-                        <datalist id="dl_groups"></datalist>
-                    </div>
-
-                    <!-- НАСТАВНИК -->
-                    <div class="mb-2">
-                        <label class="form-label">Наставник</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_mentor"
-                               list="dl_mentors"
-                               autocomplete="off"
-                               required>
-
-                        <datalist id="dl_mentors"></datalist>
-                    </div>
-
-                    {% endif %}
-
-                    <!-- РЕЗУЛЬТАТ -->
-                    <div class="mb-2">
-                        <label class="form-label">Результат</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_result"
-                               required>
-                    </div>
-
-                    <!-- ДИПЛОМЫ -->
-                    <div class="mb-2">
-                        <label class="form-label">Дипломы</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_diploms">
-                    </div>
-
-                    <!-- НАГРАДЫ -->
-                    <div class="mb-2">
-                        <label class="form-label">Награды</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_awards">
-                    </div>
-
-                    <!-- ГОД -->
-                    <div class="mb-2">
-                        <label class="form-label"> Учебный Год</label>
-
-                        <input type="text"
-                               class="form-control"
-                               id="m_year"
-                               list="dl_years"
-                               autocomplete="off"
-                               placeholder="Учебный год формата XXXX-XXXX"
-                               required>
-
-                        <datalist id="dl_years"></datalist>
-                    </div>
-
-                </form>
-
-            </div>
-
-            <div class="modal-footer">
-                <button type="button"
-                        class="btn btn-secondary"
-                        data-bs-dismiss="modal">
-                    Отмена
-                </button>
-
-                <button type="button"
-                        class="btn btn-primary"
-                        onclick="saveEvent()">
-                    Сохранить
-                </button>
-            </div>
-
+<!-- МОДАЛКА ДОБАВЛЕНИЯ -->
+<div class="modal" id="eventModal">
+    <div class="modal__overlay"></div>
+    <div class="modal__dialog">
+        <div class="modal__header">
+            <h5 class="modal__title" id="modalTitle">Добавить мероприятие</h5>
+            <button type="button" class="modal__close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal__body">
+            <form id="eventForm">
+                <input type="hidden" id="editId">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Мероприятие</label>
+                    <input type="text" class="form-control" id="m_name" list="dl_events" autocomplete="off" required>
+                    <datalist id="dl_events"></datalist>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Уровень</label>
+                    <input type="text" class="form-control" id="m_level" list="dl_levels" autocomplete="off" required>
+                    <datalist id="dl_levels"></datalist>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Сроки проведения</label>
+                    <input type="text" class="form-control" id="m_date" autocomplete="off" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">ФИО</label>
+                    <input type="text" class="form-control" id="m_fio" list="dl_users" autocomplete="off" required>
+                    <datalist id="dl_users"></datalist>
+                </div>
+                {% if user_type == 'stud' %}
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Группа</label>
+                    <input type="text" class="form-control" id="m_group" list="dl_groups" autocomplete="off" required>
+                    <datalist id="dl_groups"></datalist>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Наставник</label>
+                    <input type="text" class="form-control" id="m_mentor" list="dl_mentors" autocomplete="off" required>
+                    <datalist id="dl_mentors"></datalist>
+                </div>
+                {% endif %}
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Результат</label>
+                    <input type="text" class="form-control" id="m_result" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Дипломы</label>
+                    <input type="text" class="form-control" id="m_diploms">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Награды</label>
+                    <input type="text" class="form-control" id="m_awards">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Учебный год</label>
+                    <input type="text" class="form-control" id="m_year" list="dl_years" autocomplete="off"
+                           placeholder="XXXX-XXXX" required>
+                    <datalist id="dl_years"></datalist>
+                </div>
+            </form>
+        </div>
+        <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" data-modal-close>Отмена</button>
+            <button type="button" class="btn btn--primary" onclick="saveEvent()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="reportModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Настройки отчета</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="reportForm">
-                    <!-- Выбор года -->
-                    <div class="mb-3">
-                        <label class="form-label">Учебный год</label>
-                        <select class="form-select" id="repYear"></select>
-                    </div>
-
-                    <!-- Тип отчета -->
-                    <div class="mb-3">
-                        <label class="form-label">Тип отчета</label>
-                        <select class="form-select" id="repType">
-                            <option value="all">Все вместе (Пед + Студ)</option>
-                            <option value="ped">Только Педагоги</option>
-                            <option value="stud">Только Студенты</option>
-                        </select>
-                    </div>
-
-                    <!-- Сортировка -->
-                    <div class="mb-3">
-                        <label class="form-label">Сортировка</label>
-                        <select class="form-select" id="repSort">
-                            <option value="id">По ID (порядок добавления)</option>
-                            <option value="date">По дате мероприятия</option>
-                            <option value="level">По уровню</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-primary" onclick="startDownload()">Скачать</button>
-            </div>
+<!-- МОДАЛКА ОТЧЁТА -->
+<div class="modal" id="reportModal">
+    <div class="modal__overlay"></div>
+    <div class="modal__dialog">
+        <div class="modal__header">
+            <h5 class="modal__title">Настройки отчета</h5>
+            <button type="button" class="modal__close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal__body">
+            <form id="reportForm">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Учебный год</label>
+                    <select class="form-select" id="repYear"></select>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Тип отчета</label>
+                    <select class="form-select" id="repType">
+                        <option value="all">Все вместе (Пед + Студ)</option>
+                        <option value="ped">Только педагоги</option>
+                        <option value="stud">Только студенты</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Пользователь</label>
+                    <input type="text" class="form-control" id="repUser" list="dl_report_users"
+                           autocomplete="off" placeholder="Все пользователи">
+                    <datalist id="dl_report_users"></datalist>
+                    <input type="hidden" id="repUserId">
+                    <span class="form-hint">Необязательно — отчёт по конкретному человеку</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Сортировка</label>
+                    <select class="form-select" id="repSort">
+                        <option value="id">По ID (порядок добавления)</option>
+                        <option value="date">По дате мероприятия</option>
+                        <option value="level">По уровню</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" data-modal-close>Отмена</button>
+            <button type="button" class="btn btn--primary" onclick="startDownload()">Скачать</button>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
     window.USER_TYPE = "{{ user_type }}";
     window.API_BASE = "/api/uchastiya/" + window.USER_TYPE;
 </script>
-
 <script src="{{ url_for('static', filename='main.js') }}"></script>
-
 {% endblock %}

@@ -38,6 +38,61 @@ def _parse_period(period):
         return None, None
 
 
+def _contains(value, query):
+    if not query:
+        return True
+    if not value:
+        return False
+    return query.lower() in str(value).lower()
+
+
+@search_sort_bp.route('/filter')
+def filter_uchastiya():
+    user_type = request.args.get('user_type', '').strip() or None
+    period = request.args.get('year', '').strip()
+    level = request.args.get('level', '').strip()
+    event = request.args.get('event', '').strip()
+    fio = request.args.get('fio', '').strip()
+    mentor = request.args.get('mentor', '').strip()
+    group = request.args.get('group', '').strip()
+
+    year1, year2 = _parse_period(period) if period else (None, None)
+    if period and year1 is None:
+        return jsonify([{'error': 'Укажите период в формате XXXX-XXXX'}]), 400
+
+    has_filter = any([period, level, event, fio, mentor, group])
+    if not has_filter:
+        return jsonify([{'error': 'Укажите хотя бы один параметр фильтра'}]), 400
+
+    query = Ucastie.query
+    if year1 is not None:
+        query = query.filter_by(year1=year1, year2=year2)
+
+    result = []
+    for u in query.order_by(Ucastie.id).all():
+        item = _build_item(u, user_type)
+        if not item:
+            continue
+
+        if not _contains(item['event_level'], level):
+            continue
+        if not _contains(item['event_name'], event):
+            continue
+        if not _contains(item['user_name'], fio):
+            continue
+        if user_type == 'stud':
+            if not _contains(item.get('mentor', ''), mentor):
+                continue
+            if not _contains(item.get('group', ''), group):
+                continue
+
+        result.append(item)
+
+    if result:
+        return jsonify(result), 200
+    return jsonify([{'error': 'ничего не найдено'}]), 404
+
+
 @search_sort_bp.route('/search')
 def search_event():
     event = request.args.get('event', '').strip()

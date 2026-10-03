@@ -1,8 +1,3 @@
-document.addEventListener('DOMContentLoaded', () => {
-    loadOptions();
-    loadTable();
-});
-
 const USER_TYPE = window.USER_TYPE || 'ped';
 const API_BASE = window.API_BASE || '/api/uchastiya/ped';
 
@@ -13,29 +8,60 @@ let optionsData = {
     years: []
 };
 
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadOptions();
+    initReportUserPicker();
+
+    const urlParams = new URLSearchParams(location.search);
+    if (hasUrlFilters(urlParams)) {
+        fillSearchFromUrl(urlParams);
+        applyFilter();
+    } else {
+        loadTable();
+    }
+});
+
+function hasUrlFilters(params) {
+    return ['fio', 'level', 'event', 'mentor', 'group', 'year'].some(k => params.get(k));
+}
+
+function fillSearchFromUrl(params) {
+    const set = (id, key) => {
+        const el = document.getElementById(id);
+        if (el && params.get(key)) el.value = params.get(key);
+    };
+    set('searchFio', 'fio');
+    set('searchLevel', 'level');
+    set('searchEvent', 'event');
+    set('searchMentor', 'mentor');
+    set('searchGroup', 'group');
+    set('filterYear', 'year');
+}
+
 function populatePeriodSelects(years) {
     const filter = document.getElementById('filterYear');
     const rep = document.getElementById('repYear');
+    if (!filter || !rep) return;
 
-    if (!filter || !rep) {
-        return;
-    }
-
+    const currentFilter = filter.value;
     filter.innerHTML = '<option value="">Все периоды</option>' +
         years.map(y => `<option value="${y}">${y}</option>`).join('');
+    if (currentFilter) filter.value = currentFilter;
 
     rep.innerHTML = years.length
         ? years.map(y => `<option value="${y}">${y}</option>`).join('')
         : '<option value="">Нет периодов в БД</option>';
 }
 
-// ======================================
-// ЗАГРУЗКА ТАБЛИЦЫ
-// ======================================
+function fillDatalist(id, values) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = values.map(v => `<option value="${v}">`).join('');
+}
+
 function renderTable(data) {
     const tbody = document.getElementById('table-body');
     const table = document.getElementById('main-table');
-
     tbody.innerHTML = '';
 
     data.forEach(item => {
@@ -46,33 +72,19 @@ function renderTable(data) {
             <td>${item.event_date}</td>
             <td>${item.user_name} | ${item.rezults}</td>
         `;
-
         if (USER_TYPE === 'stud') {
-            row += `
-                <td>${item.group || '-'}</td>
-                <td>${item.mentor || '-'}</td>
-            `;
+            row += `<td>${item.group || '-'}</td><td>${item.mentor || '-'}</td>`;
         }
-
         row += `
-            <td>
-                <button class="btn btn-sm btn-warning mx-1"
-                        onclick="openEditModal(${item.id})">
-                    Ред.
-                </button>
-
-                <button class="btn btn-sm btn-danger mx-1"
-                        onclick="deleteEvent(${item.id})">
-                    Уд.
-                </button>
+            <td class="table__actions">
+                <button class="btn btn--sm btn--warning" onclick="openEditModal(${item.id})">Ред.</button>
+                <button class="btn btn--sm btn--danger" onclick="deleteEvent(${item.id})">Уд.</button>
             </td>
         `;
-
         const tr = document.createElement('tr');
         tr.innerHTML = row;
         tbody.appendChild(tr);
     });
-
     table.style.display = 'table';
 }
 
@@ -87,33 +99,17 @@ async function loadTable() {
 
     try {
         const res = await fetch(API_BASE);
-
-        if (!res.ok) {
-            throw new Error('Ошибка загрузки данных');
-        }
-
-        const data = await res.json();
-        renderTable(data);
-
+        if (!res.ok) throw new Error('Ошибка загрузки данных');
+        renderTable(await res.json());
     } catch (err) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-danger text-center">
-                    ${err.message}
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-danger text-center">${err.message}</td></tr>`;
         table.style.display = 'table';
-
     } finally {
         spinner.style.display = 'none';
     }
 }
 
-// ======================================
-// СОРТИРОВКА
-// ======================================
-async function fetchSorted(url) {
+async function fetchFiltered(url) {
     const tbody = document.getElementById('table-body');
     const spinner = document.getElementById('loading');
     const table = document.getElementById('main-table');
@@ -124,424 +120,281 @@ async function fetchSorted(url) {
 
     try {
         const res = await fetch(url);
-
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData[0]?.error || 'Ничего не найдено');
+            throw new Error(errData[0]?.error || errData.error || 'Ничего не найдено');
         }
-
-        const data = await res.json();
-        renderTable(data);
-
+        renderTable(await res.json());
     } catch (err) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-warning text-center">
-                    ${err.message}
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-warning text-center">${err.message}</td></tr>`;
         table.style.display = 'table';
-
     } finally {
         spinner.style.display = 'none';
     }
 }
 
-function sortById() {
-    fetchSorted(`/api/sort_by_id?user_type=${USER_TYPE}`);
+function buildFilterUrl() {
+    const params = new URLSearchParams();
+    params.set('user_type', USER_TYPE);
+
+    const year = document.getElementById('filterYear').value;
+    const level = document.getElementById('searchLevel').value.trim();
+    const event = document.getElementById('searchEvent').value.trim();
+    const fio = document.getElementById('searchFio').value.trim();
+
+    if (year) params.set('year', year);
+    if (level) params.set('level', level);
+    if (event) params.set('event', event);
+    if (fio) params.set('fio', fio);
+
+    if (USER_TYPE === 'stud') {
+        const mentor = document.getElementById('searchMentor').value.trim();
+        const group = document.getElementById('searchGroup').value.trim();
+        if (mentor) params.set('mentor', mentor);
+        if (group) params.set('group', group);
+    }
+
+    return `/api/filter?${params.toString()}`;
 }
 
-function sortByYear() {
-    const year = document.getElementById('filterYear').value;
+function applyFilter() {
+    const params = new URLSearchParams(buildFilterUrl().split('?')[1]);
+    const hasFilter = ['year', 'level', 'event', 'fio', 'mentor', 'group'].some(k => params.get(k));
 
-    if (!year) {
-        alert('Выберите учебный период');
+    if (!hasFilter) {
+        alert('Заполните хотя бы одно поле для поиска');
         return;
     }
 
-    fetchSorted(`/api/sort_by_year?year=${encodeURIComponent(year)}&user_type=${USER_TYPE}`);
+    fetchFiltered(buildFilterUrl());
 }
 
-// ======================================
-// ЗАГРУЗКА ДАННЫХ ДЛЯ DATALIST
-// ======================================
+function resetSearch() {
+    ['searchLevel', 'searchEvent', 'searchFio', 'searchMentor', 'searchGroup'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.getElementById('filterYear').value = '';
+    history.replaceState({}, '', location.pathname);
+    loadTable();
+}
+
 async function loadOptions() {
-
     try {
-
         const res = await fetch('/api/options');
-
-        if (!res.ok) {
-            throw new Error('Ошибка загрузки списков');
-        }
-
+        if (!res.ok) throw new Error('Ошибка загрузки списков');
         optionsData = await res.json();
 
-        // МЕРОПРИЯТИЯ
-        document.getElementById('dl_events').innerHTML =
-            optionsData.events
-                .map(e => `<option value="${e.name}">`)
-                .join('');
+        fillDatalist('dl_events', optionsData.events.map(e => e.name));
+        fillDatalist('dl_levels', optionsData.levels.map(l => l.name));
+        fillDatalist('dl_search_events', optionsData.events.map(e => e.name));
+        fillDatalist('dl_search_levels', optionsData.levels.map(l => l.name));
 
-        // УРОВНИ
-        document.getElementById('dl_levels').innerHTML =
-            optionsData.levels
-                .map(l => `<option value="${l.name}">`)
-                .join('');
-
-        // УЧЕБНЫЕ ГОДА
         const years = optionsData.years || [];
-        const dlYears = document.getElementById('dl_years');
-        if (dlYears) {
-            dlYears.innerHTML = years
-                .map(y => `<option value="${y}">`)
-                .join('');
-        }
+        fillDatalist('dl_years', years);
         populatePeriodSelects(years);
 
-        // ======================================
-        // ПОЛЬЗОВАТЕЛИ
-        // ======================================
+        const teachers = optionsData.users.filter(u => !u.group || u.group.trim() === '');
+        const students = optionsData.users.filter(u => u.group && u.group.trim() !== '');
 
-        // ПЕДАГОГИ
-        const teachers = optionsData.users.filter(
-            u => !u.group || u.group.trim() === ''
-        );
-
-        // СТУДЕНТЫ
-        const students = optionsData.users.filter(
-            u => u.group && u.group.trim() !== ''
-        );
-
-        // ЕСЛИ СТРАНИЦА СТУДЕНТОВ
         if (USER_TYPE === 'stud') {
-
-            // ФИО = только студенты
-            document.getElementById('dl_users').innerHTML =
-                students
-                    .map(u => `<option value="${u.fio}">`)
-                    .join('');
-
-            // Наставники = только преподаватели
-            document.getElementById('dl_mentors').innerHTML =
-                teachers
-                    .map(u => `<option value="${u.fio}">`)
-                    .join('');
-
-            // Группы
+            fillDatalist('dl_users', students.map(u => u.fio));
+            fillDatalist('dl_mentors', teachers.map(u => u.fio));
+            fillDatalist('dl_search_users', students.map(u => u.fio));
+            fillDatalist('dl_search_mentors', teachers.map(u => u.fio));
             if (optionsData.groups) {
-
-                document.getElementById('dl_groups').innerHTML =
-                    optionsData.groups
-                        .map(g => `<option value="${g.name}">`)
-                        .join('');
+                fillDatalist('dl_groups', optionsData.groups.map(g => g.name));
+                fillDatalist('dl_search_groups', optionsData.groups.map(g => g.name));
             }
-
         } else {
-
-            // НА СТРАНИЦЕ ПЕДАГОГОВ
-            // ФИО = только преподаватели
-            document.getElementById('dl_users').innerHTML =
-                teachers
-                    .map(u => `<option value="${u.fio}">`)
-                    .join('');
+            fillDatalist('dl_users', teachers.map(u => u.fio));
+            fillDatalist('dl_search_users', teachers.map(u => u.fio));
         }
 
+        populateReportUsers();
     } catch (err) {
-
         console.error(err);
     }
 }
 
-// ======================================
-// АВТОЗАПОЛНЕНИЕ
-// ======================================
+function getReportUsersList() {
+    const type = document.getElementById('repType')?.value || 'all';
+    if (type === 'ped') {
+        return optionsData.users.filter(u => !u.group || u.group.trim() === '');
+    }
+    if (type === 'stud') {
+        return optionsData.users.filter(u => u.group && u.group.trim() !== '');
+    }
+    return optionsData.users;
+}
+
+function userDisplayLabel(u) {
+    if (u.group && u.group.trim()) {
+        return `${u.fio} (${u.group})`;
+    }
+    return u.fio;
+}
+
+function populateReportUsers() {
+    const list = getReportUsersList();
+    fillDatalist('dl_report_users', list.map(userDisplayLabel));
+}
+
+function resolveReportUserId() {
+    const input = document.getElementById('repUser').value.trim();
+    document.getElementById('repUserId').value = '';
+    if (!input) return '';
+
+    const list = getReportUsersList();
+    const found = list.find(u => userDisplayLabel(u) === input || u.fio === input);
+    if (found) {
+        document.getElementById('repUserId').value = found.id;
+        return found.id;
+    }
+    return '';
+}
+
+function initReportUserPicker() {
+    const repType = document.getElementById('repType');
+    const repUser = document.getElementById('repUser');
+    if (repType) {
+        repType.addEventListener('change', () => {
+            repUser.value = '';
+            document.getElementById('repUserId').value = '';
+            populateReportUsers();
+        });
+    }
+    if (repUser) {
+        repUser.addEventListener('change', resolveReportUserId);
+        repUser.addEventListener('blur', resolveReportUserId);
+    }
+}
+
 function setupAutoFill() {
-
-    // АВТОЗАПОЛНЕНИЕ МЕРОПРИЯТИЯ
     document.getElementById('m_name').addEventListener('change', function () {
-
-        const ev = optionsData.events.find(
-            e => e.name === this.value
-        );
-
+        const ev = optionsData.events.find(e => e.name === this.value);
         if (ev) {
-
             document.getElementById('m_level').value = ev.level;
             document.getElementById('m_date').value = ev.date;
         }
     });
 
-    // АВТОГРУППА СТУДЕНТА
     const fioInput = document.getElementById('m_fio');
-
     fioInput.addEventListener('change', function () {
-
-        const usr = optionsData.users.find(
-            u => u.fio === this.value
-        );
-
+        const usr = optionsData.users.find(u => u.fio === this.value);
         if (usr && USER_TYPE === 'stud') {
-
-            document.getElementById('m_group').value =
-                usr.group || '';
+            document.getElementById('m_group').value = usr.group || '';
         }
     });
 }
 
-// ======================================
-// ДОБАВЛЕНИЕ
-// ======================================
 function openAddModal() {
-
     document.getElementById('editId').value = '';
-
-    document.getElementById('modalTitle').innerText =
-        'Добавить мероприятие';
-
+    document.getElementById('modalTitle').innerText = 'Добавить мероприятие';
     document.getElementById('eventForm').reset();
-
-    loadOptions().then(() => {
-        setupAutoFill();
-    });
-
-    showModal();
+    loadOptions().then(() => setupAutoFill());
+    openModal('eventModal');
 }
 
-// ======================================
-// РЕДАКТИРОВАНИЕ
-// ======================================
 async function openEditModal(id) {
-
     document.getElementById('editId').value = id;
-
-    document.getElementById('modalTitle').innerText =
-        'Редактировать мероприятие';
-
+    document.getElementById('modalTitle').innerText = 'Редактировать мероприятие';
     document.getElementById('eventForm').reset();
-
-    showModal();
+    openModal('eventModal');
 
     try {
-
         const res = await fetch(`${API_BASE}/${id}`);
-
-        if (!res.ok) {
-            throw new Error('Ошибка загрузки');
-        }
-
+        if (!res.ok) throw new Error('Ошибка загрузки');
         const item = await res.json();
 
-        document.getElementById('m_name').value =
-            item.event_name || '';
+        document.getElementById('m_name').value = item.event_name || '';
+        document.getElementById('m_level').value = item.event_level || '';
+        document.getElementById('m_date').value = item.event_date || '';
+        document.getElementById('m_fio').value = item.user_name || '';
+        document.getElementById('m_year').value = item.year || '';
 
-        document.getElementById('m_level').value =
-            item.event_level || '';
-
-        document.getElementById('m_date').value =
-            item.event_date || '';
-
-        document.getElementById('m_fio').value =
-            item.user_name || '';
-
-        document.getElementById('m_year').value =
-            item.year || '';
-
-        const parts = (item.rezults || '')
-            .split(',')
-            .map(s => s.trim());
-
-        document.getElementById('m_result').value =
-            parts[0] || '';
-
-        document.getElementById('m_diploms').value =
-            parts[1] || '';
-
-        document.getElementById('m_awards').value =
-            parts[2] || '';
+        const parts = (item.rezults || '').split(',').map(s => s.trim());
+        document.getElementById('m_result').value = parts[0] || '';
+        document.getElementById('m_diploms').value = parts[1] || '';
+        document.getElementById('m_awards').value = parts[2] || '';
 
         if (USER_TYPE === 'stud') {
-
-            document.getElementById('m_group').value =
-                item.group || '';
-
-            document.getElementById('m_mentor').value =
-                item.mentor || '';
+            document.getElementById('m_group').value = item.group || '';
+            document.getElementById('m_mentor').value = item.mentor || '';
         }
 
         await loadOptions();
-
         setupAutoFill();
-
     } catch (err) {
-
         alert(err.message);
     }
 }
 
-// ======================================
-// СОХРАНЕНИЕ
-// ======================================
 async function saveEvent() {
-
     const payload = {
-
-        event_name:
-            document.getElementById('m_name').value,
-
-        event_level:
-            document.getElementById('m_level').value,
-
-        event_date:
-            document.getElementById('m_date').value,
-
-        fio:
-            document.getElementById('m_fio').value,
-
-        rezultat:
-            document.getElementById('m_result').value,
-
-        diplomi:
-            document.getElementById('m_diploms').value,
-
-        nagradi:
-            document.getElementById('m_awards').value,
-
-        year:
-            document.getElementById('m_year').value
+        event_name: document.getElementById('m_name').value,
+        event_level: document.getElementById('m_level').value,
+        event_date: document.getElementById('m_date').value,
+        fio: document.getElementById('m_fio').value,
+        rezultat: document.getElementById('m_result').value,
+        diplomi: document.getElementById('m_diploms').value,
+        nagradi: document.getElementById('m_awards').value,
+        year: document.getElementById('m_year').value
     };
 
-    // ДЛЯ СТУДЕНТОВ
     if (USER_TYPE === 'stud') {
-
-        payload.group =
-            document.getElementById('m_group').value;
-
-        payload.mentor =
-            document.getElementById('m_mentor').value;
+        payload.group = document.getElementById('m_group').value;
+        payload.mentor = document.getElementById('m_mentor').value;
     }
 
     const id = document.getElementById('editId').value;
-
-    const url = id
-        ? `${API_BASE}/${id}`
-        : API_BASE;
-
-    const method = id
-        ? 'PUT'
-        : 'POST';
+    const url = id ? `${API_BASE}/${id}` : API_BASE;
+    const method = id ? 'PUT' : 'POST';
 
     try {
-
         const res = await fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            method,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ошибка сохранения');
 
-        if (!res.ok) {
-            throw new Error(data.error || 'Ошибка сохранения');
-        }
-
-        hideModal();
-
+        closeModal('eventModal');
         loadTable();
         loadOptions();
-
     } catch (err) {
-
         alert(err.message);
     }
 }
 
-// ======================================
-// УДАЛЕНИЕ
-// ======================================
 async function deleteEvent(id) {
-
-    if (!confirm('Удалить запись?')) {
-        return;
-    }
-
+    if (!confirm('Удалить запись?')) return;
     try {
-
-        const res = await fetch(`${API_BASE}/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (res.ok) {
-
-            loadTable();
-
-        } else {
-
-            alert('Ошибка удаления');
-        }
-
+        const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+        if (res.ok) loadTable();
+        else alert('Ошибка удаления');
     } catch {
-
         alert('Ошибка сети');
     }
 }
 
-// ======================================
-// MODAL
-// ======================================
-function showModal() {
-
-    if (typeof bootstrap !== 'undefined') {
-
-        new bootstrap.Modal(
-            document.getElementById('eventModal')
-        ).show();
-
-    } else {
-
-        document.getElementById('eventModal').style.display = 'block';
-    }
-}
-
-function hideModal() {
-
-    if (typeof bootstrap !== 'undefined') {
-
-        const modal = bootstrap.Modal.getInstance(
-            document.getElementById('eventModal')
-        );
-
-        if (modal) {
-            modal.hide();
-        }
-
-    } else {
-
-        document.getElementById('eventModal').style.display = 'none';
-    }
-}
-
-// ======================================
-// СКАЧИВАНИЕ ОТЧЕТА
-// ======================================
 async function startDownload() {
     const year = document.getElementById('repYear').value;
     const type = document.getElementById('repType').value;
     const sort = document.getElementById('repSort').value;
+    const userId = resolveReportUserId();
 
     if (!year) {
         alert('Нет доступных учебных периодов в базе данных');
         return;
     }
 
-    const url = `/api/report/download?year=${encodeURIComponent(year)}&type=${type}&sort=${sort}`;
+    let url = `/api/report/download?year=${encodeURIComponent(year)}&type=${type}&sort=${sort}`;
+    if (userId) url += `&user_id=${userId}`;
 
     try {
         const res = await fetch(url);
-
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.error || 'Ошибка формирования отчета');
@@ -556,12 +409,7 @@ async function startDownload() {
         link.remove();
         window.URL.revokeObjectURL(link.href);
 
-        const modal = document.getElementById('reportModal');
-        if (typeof bootstrap !== 'undefined') {
-            const modalInstance = bootstrap.Modal.getInstance(modal);
-            if (modalInstance) modalInstance.hide();
-        }
-
+        closeModal('reportModal');
     } catch (err) {
         alert(err.message);
     }

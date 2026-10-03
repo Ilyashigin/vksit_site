@@ -36,7 +36,7 @@ def enter():
 def get_options():
     groups = list(set([u.group for u in User.query.all() if u.group and u.group.strip()]))
 
-    users = [{'fio': u.fio, 'group': u.group} for u in User.query.all()]
+    users = [{'id': u.id, 'fio': u.fio, 'group': u.group} for u in User.query.all()]
     events = [{'name': m.name, 'date': m.date, 'level': m.uroven.uroven_name} for m in Meropriyatie.query.all()]
     levels = [{'name': l.uroven_name} for l in Uroven.query.all()]
     periods = (
