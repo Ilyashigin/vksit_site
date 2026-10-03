@@ -1,29 +1,46 @@
-from flask import Flask, render_template, request, redirect, jsonify, Blueprint
-from models import *
-from datetime import date
+from flask import Blueprint, redirect, render_template
 
 main_view_bp = Blueprint('main_view_bp', __name__)
 
+
 @main_view_bp.route('/')
 def index():
-    return redirect('/rabotniki')
+    return redirect('/teachers')
+
 
 @main_view_bp.route('/rabotniki')
-def ped_rab_page():
-    return render_template('uchastiya.html', user_type='ped', title='Пед. работники')
+def legacy_teachers_page():
+    return redirect('/teachers')
+
+
+@main_view_bp.route('/teachers')
+def teachers_page():
+    return render_template(
+        'participation.html',
+        user_type='teacher',
+        title='Педагогические работники',
+    )
+
 
 @main_view_bp.route('/students')
-def stud_page():
-    return render_template('uchastiya.html', user_type='stud', title='Студенты')
+def students_page():
+    return render_template(
+        'participation.html',
+        user_type='student',
+        title='Студенты',
+    )
+
 
 @main_view_bp.route('/users')
-def user_page():
+def users_page():
     return render_template('users_view.html')
 
+
 @main_view_bp.route('/levels')
-def level_page():
+def levels_page():
     return render_template('level_view.html')
 
+
 @main_view_bp.route('/events')
-def event_page():
+def events_page():
     return render_template('event_view.html')

@@ -1,33 +1,9 @@
 from flask import request, jsonify, Blueprint
-from models import Ucastie
+
+from models import Participation
+from api.participation_helpers import participation_to_dict
 
 search_sort_bp = Blueprint('search_sort_bp', __name__, url_prefix='/api')
-
-
-def _is_student(u):
-    return bool(u.user.group and str(u.user.group).strip())
-
-
-def _build_item(u, user_type=None):
-    is_stud = _is_student(u)
-    if user_type == 'ped' and is_stud:
-        return None
-    if user_type == 'stud' and not is_stud:
-        return None
-
-    item = {
-        'id': u.id,
-        'rezults': u.rezultat,
-        'year': f'{u.year1}-{u.year2}',
-        'event_name': u.meropriyatie.name,
-        'event_date': u.meropriyatie.date,
-        'event_level': u.meropriyatie.uroven.uroven_name,
-        'user_name': u.user.fio,
-    }
-    if is_stud:
-        item['group'] = u.user.group
-        item['mentor'] = u.mentor.fio if u.mentor else ''
-    return item
 
 
 def _parse_period(period):
@@ -47,12 +23,12 @@ def _contains(value, query):
 
 
 @search_sort_bp.route('/filter')
-def filter_uchastiya():
+def filter_participations():
     user_type = request.args.get('user_type', '').strip() or None
     period = request.args.get('year', '').strip()
     level = request.args.get('level', '').strip()
     event = request.args.get('event', '').strip()
-    fio = request.args.get('fio', '').strip()
+    full_name = request.args.get('full_name', '').strip()
     mentor = request.args.get('mentor', '').strip()
     group = request.args.get('group', '').strip()
 
@@ -60,27 +36,27 @@ def filter_uchastiya():
     if period and year1 is None:
         return jsonify([{'error': 'Укажите период в формате XXXX-XXXX'}]), 400
 
-    has_filter = any([period, level, event, fio, mentor, group])
+    has_filter = any([period, level, event, full_name, mentor, group])
     if not has_filter:
         return jsonify([{'error': 'Укажите хотя бы один параметр фильтра'}]), 400
 
-    query = Ucastie.query
+    query = Participation.query
     if year1 is not None:
         query = query.filter_by(year1=year1, year2=year2)
 
     result = []
-    for u in query.order_by(Ucastie.id).all():
-        item = _build_item(u, user_type)
+    for participation in query.order_by(Participation.id).all():
+        item = participation_to_dict(participation, user_type)
         if not item:
             continue
 
-        if not _contains(item['event_level'], level):
+        if not _contains(item['level_name'], level):
             continue
         if not _contains(item['event_name'], event):
             continue
-        if not _contains(item['user_name'], fio):
+        if not _contains(item['participant_name'], full_name):
             continue
-        if user_type == 'stud':
+        if user_type == 'student':
             if not _contains(item.get('mentor', ''), mentor):
                 continue
             if not _contains(item.get('group', ''), group):
@@ -94,38 +70,38 @@ def filter_uchastiya():
 
 
 @search_sort_bp.route('/search')
-def search_event():
+def search_participations():
     event = request.args.get('event', '').strip()
-    ev = [i for i in event]
-    usr_name = request.args.get('fio', '').strip()
-    us_nm = [i for i in usr_name]
+    event_chars = [char for char in event]
+    full_name = request.args.get('full_name', '').strip()
+    name_chars = [char for char in full_name]
     user_type = request.args.get('user_type', '').strip() or None
 
     result = []
     seen_ids = set()
 
-    for u in Ucastie.query.all():
-        item = _build_item(u, user_type)
+    for participation in Participation.query.all():
+        item = participation_to_dict(participation, user_type)
         if not item:
             continue
 
-        goal = item['event_name']
-        goal_fio = item['user_name']
+        event_name = item['event_name']
+        participant_label = item['participant_name']
         if item.get('group'):
-            goal_fio = f"{item['user_name']}({item['group']})"
+            participant_label = f"{item['participant_name']}({item['group']})"
 
         matched = False
         if event:
-            count_ev = sum(1 for i in goal if i in ev)
-            if count_ev >= 3:
+            count_event = sum(1 for char in event_name if char in event_chars)
+            if count_event >= 3:
                 matched = True
 
-        if usr_name:
-            count_us = sum(1 for i in goal_fio if i in us_nm)
-            if count_us >= 3:
+        if full_name:
+            count_name = sum(1 for char in participant_label if char in name_chars)
+            if count_name >= 3:
                 matched = True
 
-        if (event or usr_name) and matched and item['id'] not in seen_ids:
+        if (event or full_name) and matched and item['id'] not in seen_ids:
             result.append(item)
             seen_ids.add(item['id'])
 
@@ -144,8 +120,8 @@ def sort_by_year():
         return jsonify([{'error': 'Укажите период в формате XXXX-XXXX'}]), 400
 
     result = []
-    for u in Ucastie.query.filter_by(year1=year1, year2=year2).order_by(Ucastie.id).all():
-        item = _build_item(u, user_type)
+    for participation in Participation.query.filter_by(year1=year1, year2=year2).order_by(Participation.id).all():
+        item = participation_to_dict(participation, user_type)
         if item:
             result.append(item)
 
@@ -159,8 +135,8 @@ def sort_by_id():
     user_type = request.args.get('user_type', '').strip() or None
     result = []
 
-    for u in Ucastie.query.order_by(Ucastie.id).all():
-        item = _build_item(u, user_type)
+    for participation in Participation.query.order_by(Participation.id).all():
+        item = participation_to_dict(participation, user_type)
         if item:
             result.append(item)
 

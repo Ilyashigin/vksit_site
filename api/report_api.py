@@ -1,7 +1,10 @@
 import io
 import os
+
 from flask import Blueprint, request, send_file
-from models import Ucastie, Meropriyatie, Uroven
+
+from models import Participation, Event, Level
+from api.participation_helpers import is_student
 
 report_bp = Blueprint('report_bp', __name__, url_prefix='/api/report')
 
@@ -29,26 +32,22 @@ TABLE_HEADERS = [
 ]
 
 
-def _is_student(u):
-    return bool(u.user.group and str(u.user.group).strip())
-
-
 def _parse_period(period):
     year1, year2 = period.split('-')
     return int(year1), int(year2)
 
 
-def _format_result_column(u, is_stud):
-    parts = [p.strip() for p in (u.rezultat or '').split(',')]
+def _format_result_column(participation, student):
+    parts = [part.strip() for part in (participation.result or '').split(',')]
     result = parts[0] if parts else ''
     diplomas = parts[1] if len(parts) > 1 else ''
     awards = parts[2] if len(parts) > 2 else ''
 
     chunks = []
-    if is_stud and u.user.group:
-        chunks.append(f'{u.user.fio} ({u.user.group})')
+    if student and participation.user.group:
+        chunks.append(f'{participation.user.full_name} ({participation.user.group})')
     else:
-        chunks.append(u.user.fio)
+        chunks.append(participation.user.full_name)
 
     if result:
         chunks.append(result)
@@ -57,8 +56,8 @@ def _format_result_column(u, is_stud):
     if awards:
         chunks.append(awards)
 
-    if is_stud and u.mentor:
-        chunks.append(f'(наставник {u.mentor.fio})')
+    if student and participation.mentor:
+        chunks.append(f'(наставник {participation.mentor.full_name})')
 
     return ' '.join(chunks).strip()
 
@@ -72,7 +71,7 @@ def _group_rows(rows):
         if key not in grouped:
             grouped[key] = {
                 'event_name': row['event_name'],
-                'event_level': row['event_level'],
+                'level_name': row['level_name'],
                 'event_date': row['event_date'],
                 'result_parts': [],
             }
@@ -82,10 +81,10 @@ def _group_rows(rows):
     result = []
     for key in order:
         item = grouped[key]
-        parts = [p for p in item['result_parts'] if p]
+        parts = [part for part in item['result_parts'] if part]
         result.append({
             'event_name': item['event_name'],
-            'event_level': item['event_level'],
+            'level_name': item['level_name'],
             'event_date': item['event_date'],
             'result_col': '\n'.join(parts),
         })
@@ -93,44 +92,40 @@ def _group_rows(rows):
 
 
 def _fetch_records(year1, year2, report_type, sort, user_id=None):
-    query = Ucastie.query.filter_by(year1=year1, year2=year2)
+    query = Participation.query.filter_by(year1=year1, year2=year2)
     if user_id:
-        query = query.filter_by(id_user=user_id)
+        query = query.filter_by(user_id=user_id)
 
     if sort == 'id':
-        query = query.order_by(Ucastie.id)
+        query = query.order_by(Participation.id)
     elif sort == 'level':
-        query = query.join(Ucastie.meropriyatie).join(
-            Meropriyatie.uroven
-        ).order_by(Uroven.uroven_name, Ucastie.id)
+        query = query.join(Participation.event).join(Event.level).order_by(Level.name, Participation.id)
     else:
-        query = query.join(Ucastie.meropriyatie).order_by(
-            Meropriyatie.date, Ucastie.id
-        )
+        query = query.join(Participation.event).order_by(Event.date, Participation.id)
 
-    ped_rows = []
-    stud_rows = []
+    teacher_rows = []
+    student_rows = []
 
-    for u in query.all():
-        is_stud = _is_student(u)
+    for participation in query.all():
+        student = is_student(participation.user)
         row = {
-            'event_key': u.id_meropriyatie,
-            'event_name': u.meropriyatie.name,
-            'event_level': u.meropriyatie.uroven.uroven_name,
-            'event_date': u.meropriyatie.date,
-            'result_col': _format_result_column(u, is_stud),
+            'event_key': participation.event_id,
+            'event_name': participation.event.name,
+            'level_name': participation.event.level.name,
+            'event_date': participation.event.date,
+            'result_col': _format_result_column(participation, student),
         }
-        if is_stud:
-            stud_rows.append(row)
+        if student:
+            student_rows.append(row)
         else:
-            ped_rows.append(row)
+            teacher_rows.append(row)
 
-    if report_type == 'ped':
-        stud_rows = []
-    elif report_type == 'stud':
-        ped_rows = []
+    if report_type == 'teacher':
+        student_rows = []
+    elif report_type == 'student':
+        teacher_rows = []
 
-    return _group_rows(ped_rows), _group_rows(stud_rows)
+    return _group_rows(teacher_rows), _group_rows(student_rows)
 
 
 def _set_cell_text(cell, text, bold=False):
@@ -148,7 +143,7 @@ def _fill_table(table, rows):
         cells = table.add_row().cells
         _set_cell_text(cells[0], idx)
         _set_cell_text(cells[1], row['event_name'])
-        _set_cell_text(cells[2], row['event_level'])
+        _set_cell_text(cells[2], row['level_name'])
         _set_cell_text(cells[3], row['event_date'])
         _set_cell_text(cells[4], row['result_col'])
 
@@ -165,9 +160,9 @@ def _generate_report(year1, year2, report_type, sort, user_id=None):
     from docx import Document
 
     period = f'{year1}-{year2}'
-    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort, user_id)
+    teacher_rows, student_rows = _fetch_records(year1, year2, report_type, sort, user_id)
 
-    if not ped_rows and not stud_rows:
+    if not teacher_rows and not student_rows:
         return None
 
     doc = Document(TEMPLATE_PATH)
@@ -183,13 +178,13 @@ def _generate_report(year1, year2, report_type, sort, user_id=None):
         STUD_TITLE.format(period=period),
     )
 
-    if len(doc.tables) >= 1 and ped_rows:
-        _fill_table(doc.tables[0], ped_rows)
+    if len(doc.tables) >= 1 and teacher_rows:
+        _fill_table(doc.tables[0], teacher_rows)
     elif len(doc.tables) >= 1:
         _fill_table(doc.tables[0], [])
 
-    if len(doc.tables) >= 2 and stud_rows:
-        _fill_table(doc.tables[1], stud_rows)
+    if len(doc.tables) >= 2 and student_rows:
+        _fill_table(doc.tables[1], student_rows)
     elif len(doc.tables) >= 2:
         _fill_table(doc.tables[1], [])
 
@@ -205,9 +200,9 @@ def _generate_report_from_scratch(year1, year2, report_type, sort, user_id=None)
     from docx.enum.text import WD_ALIGN_PARAGRAPH
 
     period = f'{year1}-{year2}'
-    ped_rows, stud_rows = _fetch_records(year1, year2, report_type, sort, user_id)
+    teacher_rows, student_rows = _fetch_records(year1, year2, report_type, sort, user_id)
 
-    if not ped_rows and not stud_rows:
+    if not teacher_rows and not student_rows:
         return None
 
     doc = Document()
@@ -221,25 +216,25 @@ def _generate_report_from_scratch(year1, year2, report_type, sort, user_id=None)
         if not rows:
             return
 
-        p = doc.add_paragraph(title)
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
+        paragraph = doc.add_paragraph(title)
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in paragraph.runs:
             run.bold = True
             run.font.size = Pt(12)
 
         table = doc.add_table(rows=1, cols=5)
         table.style = 'Table Grid'
-        hdr = table.rows[0].cells
-        for i, name in enumerate(TABLE_HEADERS):
-            _set_cell_text(hdr[i], name, bold=True)
+        header_cells = table.rows[0].cells
+        for index, name in enumerate(TABLE_HEADERS):
+            _set_cell_text(header_cells[index], name, bold=True)
 
         _fill_table(table, rows)
         doc.add_paragraph('')
 
-    if ped_rows:
-        add_section(PED_TITLE.format(period=period), ped_rows)
-    if stud_rows:
-        add_section(STUD_TITLE.format(period=period), stud_rows)
+    if teacher_rows:
+        add_section(PED_TITLE.format(period=period), teacher_rows)
+    if student_rows:
+        add_section(STUD_TITLE.format(period=period), student_rows)
 
     for section in doc.sections:
         section.left_margin = Cm(1.5)
@@ -259,7 +254,7 @@ def download_report():
     user_id = request.args.get('user_id', '').strip()
     user_id = int(user_id) if user_id.isdigit() else None
 
-    if report_type not in ('all', 'ped', 'stud'):
+    if report_type not in ('all', 'teacher', 'student'):
         return {'error': 'Неверный тип отчета'}, 400
     if sort not in ('id', 'date', 'level'):
         return {'error': 'Неверный тип сортировки'}, 400
@@ -275,14 +270,12 @@ def download_report():
         else:
             buffer = _generate_report_from_scratch(year1, year2, report_type, sort, user_id)
     except ImportError:
-        return {
-            'error': 'Установите python-docx: pip install python-docx'
-        }, 500
+        return {'error': 'Установите python-docx: pip install python-docx'}, 500
 
     if buffer is None:
         return {'error': 'Нет данных за выбранный период'}, 404
 
-    filename = f'otchet_{period}_{report_type}.docx'
+    filename = f'report_{period}_{report_type}.docx'
     return send_file(
         buffer,
         as_attachment=True,

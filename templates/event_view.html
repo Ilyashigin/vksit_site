@@ -2,7 +2,7 @@
 {% block title %}Список мероприятий{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Список мероприятий</h1>
+<h1 class="page-title">Мероприятия</h1>
 
 <div class="toolbar">
     <button type="button" class="btn btn--primary" onclick="openEventModal('add')">
@@ -21,6 +21,7 @@
                     <tr>
                         <th>№</th>
                         <th>Название</th>
+                        <th>Описание</th>
                         <th>Уровень</th>
                         <th>Дата</th>
                         <th class="table__actions">Действия</th>
@@ -48,9 +49,14 @@
                            placeholder="Например: Олимпиада по программированию">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
-                    <label class="form-label">Дата проведения</label>
-                    <input type="text" class="form-control" id="m_date" required
-                           placeholder="Например: Февраль 2025">
+                    <label class="form-label" for="m_description">Описание</label>
+                    <textarea class="form-control" id="m_description" rows="3"
+                              placeholder="Необязательно"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label" for="m_date">Дата проведения</label>
+                    <input type="text" class="form-control form-control--date" id="m_date"
+                           placeholder="Выберите дату или период" autocomplete="off" required readonly>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Уровень мероприятия</label>
@@ -70,5 +76,8 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
 <script src="{{ url_for('static', filename='event_view.js') }}"></script>
 {% endblock %}

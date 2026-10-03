@@ -1,14 +1,91 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    initEventDatePicker();
     await loadOptions();
     loadEvents();
 });
 
-const API_URL = '/api/mer';
+const API_URL = '/api/events';
 let currentEventData = [];
+let eventDatePicker = null;
 
 const modalTitle = document.getElementById('modalTitle');
 const form = document.getElementById('eventForm');
 const datalistLevels = document.getElementById('dl_levels');
+
+function parseToIsoDate(str) {
+    if (!str) return '';
+    const value = String(str).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const dmY = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dmY) {
+        return `${dmY[3]}-${dmY[2].padStart(2, '0')}-${dmY[1].padStart(2, '0')}`;
+    }
+    return '';
+}
+
+function formatDateObjToDdMmYyyy(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}.${date.getFullYear()}`;
+}
+
+function parseEventPeriod(str) {
+    if (!str) return { start: '', end: '' };
+    const value = String(str).trim();
+
+    const rangeMatch = value.match(/^(\d{1,2}\.\d{1,2}\.\d{4})-(\d{1,2}\.\d{1,2}\.\d{4})$/);
+    if (rangeMatch) {
+        return {
+            start: parseToIsoDate(rangeMatch[1]),
+            end: parseToIsoDate(rangeMatch[2]),
+        };
+    }
+
+    return { start: parseToIsoDate(value), end: '' };
+}
+
+function buildEventPeriod() {
+    if (!eventDatePicker || !eventDatePicker.selectedDates.length) return '';
+
+    const dates = eventDatePicker.selectedDates;
+    const startFmt = formatDateObjToDdMmYyyy(dates[0]);
+    if (dates.length === 1) return startFmt;
+
+    const endFmt = formatDateObjToDdMmYyyy(dates[1]);
+    if (startFmt === endFmt) return startFmt;
+    return `${startFmt}-${endFmt}`;
+}
+
+function setEventDate(value) {
+    if (!eventDatePicker) return;
+
+    const period = parseEventPeriod(value);
+    if (period.start && period.end) {
+        eventDatePicker.setDate([period.start, period.end], false);
+    } else if (period.start) {
+        eventDatePicker.setDate([period.start], false);
+    } else {
+        eventDatePicker.clear(false);
+    }
+}
+
+function clearEventDate() {
+    if (eventDatePicker) eventDatePicker.clear(false);
+}
+
+function initEventDatePicker() {
+    const input = document.getElementById('m_date');
+    if (!input || eventDatePicker || typeof flatpickr === 'undefined') return;
+
+    eventDatePicker = flatpickr(input, {
+        mode: 'range',
+        locale: 'ru',
+        dateFormat: 'd.m.Y',
+        rangeSeparator: ' — ',
+        allowInput: false,
+    });
+}
 
 async function loadOptions() {
     try {
@@ -18,7 +95,7 @@ async function loadOptions() {
 
         if (datalistLevels && data.levels) {
             datalistLevels.innerHTML = data.levels
-                .map(l => `<option value="${l.name || l}">`)
+                .map(level => `<option value="${level.name || level}">`)
                 .join('');
         }
     } catch (err) {
@@ -44,9 +121,10 @@ async function loadEvents() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${event.id}</td>
-                <td>${event.event_name}</td>
-                <td>${event.event_level || '-'}</td>
-                <td>${event.event_date}</td>
+                <td>${event.name}</td>
+                <td>${event.description || '-'}</td>
+                <td>${event.level_name || '-'}</td>
+                <td>${event.date}</td>
                 <td class="table__actions">
                     <button class="btn btn--sm btn--warning" onclick="openEventModal('edit', ${event.id})">Ред.</button>
                     <button class="btn btn--sm btn--danger" onclick="deleteEvent(${event.id})">Уд.</button>
@@ -55,7 +133,7 @@ async function loadEvents() {
             tableBody.appendChild(row);
         });
     } catch (err) {
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-danger text-center">${err.message}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-danger text-center">${err.message}</td></tr>`;
     } finally {
         loading.style.display = 'none';
         table.style.display = 'table';
@@ -64,6 +142,7 @@ async function loadEvents() {
 
 function openEventModal(type, id = null) {
     form.reset();
+    clearEventDate();
     document.getElementById('editId').value = '';
 
     if (type === 'edit' && id) {
@@ -71,9 +150,10 @@ function openEventModal(type, id = null) {
         if (event) {
             modalTitle.innerText = 'Редактировать мероприятие';
             document.getElementById('editId').value = event.id;
-            document.getElementById('m_name').value = event.event_name;
-            document.getElementById('m_date').value = event.event_date;
-            document.getElementById('m_level').value = event.event_level || '';
+            document.getElementById('m_name').value = event.name;
+            document.getElementById('m_description').value = event.description || '';
+            setEventDate(event.date);
+            document.getElementById('m_level').value = event.level_name || '';
         }
     } else {
         modalTitle.innerText = 'Добавить мероприятие';
@@ -85,17 +165,18 @@ function openEventModal(type, id = null) {
 async function saveEvent() {
     const id = document.getElementById('editId').value;
     const eventName = document.getElementById('m_name').value.trim();
-    const eventDate = document.getElementById('m_date').value;
-    const eventLevel = document.getElementById('m_level').value.trim();
+    const eventDate = buildEventPeriod();
+    const levelName = document.getElementById('m_level').value.trim();
 
     if (!eventName) { alert('Поле Название обязательно к заполнению'); return; }
-    if (!eventDate) { alert('Поле Дата обязательно к заполнению'); return; }
-    if (!eventLevel) { alert('Поле Уровень обязательно к заполнению'); return; }
+    if (!eventDate) { alert('Укажите дату или период проведения'); return; }
+    if (!levelName) { alert('Поле Уровень обязательно к заполнению'); return; }
 
     const payload = {
-        event_name: eventName,
-        event_date: eventDate,
-        event_level: eventLevel
+        name: eventName,
+        date: eventDate,
+        description: document.getElementById('m_description').value.trim(),
+        level_name: levelName
     };
 
     const url = id ? `${API_URL}/${id}` : API_URL;
