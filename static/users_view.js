@@ -1,8 +1,7 @@
-const API_URL = '/api/user';
+const API_URL = '/api/users';
 let currentUserData = [];
 let optionsData = { groups: [] };
 
-const modalEl = document.getElementById('userModal');
 const modalTitle = document.getElementById('modalTitle');
 const form = document.getElementById('userForm');
 const datalistGroups = document.getElementById('dl_groups');
@@ -45,20 +44,19 @@ async function loadUsers() {
         if (!res.ok) throw new Error('Ошибка загрузки данных');
         currentUserData = await res.json();
 
-        currentUserData.forEach(u => {
-            const isStudent = u.group && u.group.toString().trim() !== '';
+        currentUserData.forEach(user => {
+            const isStudent = user.group && user.group.toString().trim() !== '';
             const targetBody = isStudent ? studentBody : staffBody;
-            const userJson = JSON.stringify(u).replace(/"/g, '&quot;');
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${u.id}</td>
-                <td>${u.fio}</td>
-                ${isStudent ? `<td>${u.group}</td>` : ''}
+                <td>${user.id}</td>
+                <td>${user.full_name}</td>
+                ${isStudent ? `<td>${user.group}</td>` : ''}
                 <td class="table__actions">
-                    <button class="btn btn--sm btn--secondary" onclick="viewUserEvents(${u.id})">Просмотр</button>
-                    <button class="btn btn--sm btn--warning" onclick="openUserModal('edit', ${u.id})">Ред.</button>
-                    <button class="btn btn--sm btn--danger" onclick="deleteUser(${u.id})">Уд.</button>
+                    <button class="btn btn--sm btn--secondary" onclick="viewUserEvents(${user.id})">Просмотр</button>
+                    <button class="btn btn--sm btn--warning" onclick="openUserModal('edit', ${user.id})">Ред.</button>
+                    <button class="btn btn--sm btn--danger" onclick="deleteUser(${user.id})">Уд.</button>
                 </td>
             `;
             targetBody.appendChild(row);
@@ -99,7 +97,7 @@ function openUserModal(type, id = null, role = 'teacher') {
             setRoleFields(isStudent ? 'student' : 'teacher');
             modalTitle.innerText = 'Редактировать участника';
             document.getElementById('editId').value = user.id;
-            document.getElementById('m_fio').value = user.fio;
+            document.getElementById('m_full_name').value = user.full_name;
             document.getElementById('m_group').value = user.group || '';
         }
     } else {
@@ -118,20 +116,20 @@ function viewUserEvents(id) {
 
     const isStudent = user.group && user.group.toString().trim() !== '';
     if (isStudent) {
-        const params = new URLSearchParams({ fio: user.fio, group: user.group });
+        const params = new URLSearchParams({ full_name: user.full_name, group: user.group });
         location.href = `/students?${params.toString()}`;
     } else {
-        location.href = `/rabotniki?fio=${encodeURIComponent(user.fio)}`;
+        location.href = `/teachers?full_name=${encodeURIComponent(user.full_name)}`;
     }
 }
 
 async function saveUser() {
     const id = document.getElementById('editId').value;
-    const fio = document.getElementById('m_fio').value.trim();
+    const fullName = document.getElementById('m_full_name').value.trim();
     const role = userRoleInput.value;
     const groupRaw = document.getElementById('m_group').value.trim();
 
-    if (!fio) {
+    if (!fullName) {
         alert('Поле ФИО обязательно к заполнению');
         return;
     }
@@ -141,7 +139,7 @@ async function saveUser() {
         return;
     }
 
-    const payload = { fio };
+    const payload = { full_name: fullName };
     if (role === 'student') payload.group = groupRaw;
 
     const url = id ? `${API_URL}/${id}` : API_URL;

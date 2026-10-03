@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', loadLevels);
 
-const API_URL = '/api/ur';
+const API_URL = '/api/levels';
 let currentLevelData = [];
 
 const modalTitle = document.getElementById('modalTitle');
@@ -24,7 +24,7 @@ async function loadLevels() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${level.id}</td>
-                <td>${level.event_level}</td>
+                <td>${level.name}</td>
                 <td class="table__actions">
                     <button class="btn btn--sm btn--warning" onclick="openLevelModal('edit', ${level.id})">Ред.</button>
                     <button class="btn btn--sm btn--danger" onclick="deleteLevel(${level.id})">Уд.</button>
@@ -49,7 +49,7 @@ function openLevelModal(type, id = null) {
         if (level) {
             modalTitle.innerText = 'Редактировать уровень';
             document.getElementById('editId').value = level.id;
-            document.getElementById('m_level').value = level.event_level;
+            document.getElementById('m_level').value = level.name;
         }
     } else {
         modalTitle.innerText = 'Добавить уровень';
@@ -67,7 +67,7 @@ async function saveLevel() {
         return;
     }
 
-    const payload = { event_level: levelName };
+    const payload = { name: levelName };
     const url = id ? `${API_URL}/${id}` : API_URL;
     const method = id ? 'PUT' : 'POST';
 

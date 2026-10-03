@@ -33,11 +33,11 @@
             <datalist id="dl_search_events"></datalist>
         </div>
         <div class="form-group">
-            <label class="form-label" for="searchFio">ФИО {% if user_type == 'stud' %}студента{% else %}работника{% endif %}</label>
-            <input type="text" class="form-control" id="searchFio" list="dl_search_users" autocomplete="off">
+            <label class="form-label" for="searchFullName">ФИО {% if user_type == 'student' %}студента{% else %}работника{% endif %}</label>
+            <input type="text" class="form-control" id="searchFullName" list="dl_search_users" autocomplete="off">
             <datalist id="dl_search_users"></datalist>
         </div>
-        {% if user_type == 'stud' %}
+        {% if user_type == 'student' %}
         <div class="form-group">
             <label class="form-label" for="searchMentor">ФИО наставника</label>
             <input type="text" class="form-control" id="searchMentor" list="dl_search_mentors" autocomplete="off">
@@ -67,7 +67,7 @@
                 <th>Уровень</th>
                 <th>Сроки проведения</th>
                 <th>Результаты, ФИО, Дипломы, Награды</th>
-                {% if user_type == 'stud' %}
+                {% if user_type == 'student' %}
                     <th>Группа</th>
                     <th>Наставник</th>
                 {% endif %}
@@ -78,7 +78,6 @@
     </table>
 </div>
 
-<!-- МОДАЛКА ДОБАВЛЕНИЯ -->
 <div class="modal" id="eventModal">
     <div class="modal__overlay"></div>
     <div class="modal__dialog">
@@ -95,20 +94,28 @@
                     <datalist id="dl_events"></datalist>
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label" for="m_description">Описание</label>
+                    <textarea class="form-control" id="m_description" rows="3"
+                              placeholder="Необязательно"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">Уровень</label>
                     <input type="text" class="form-control" id="m_level" list="dl_levels" autocomplete="off" required>
                     <datalist id="dl_levels"></datalist>
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
-                    <label class="form-label">Сроки проведения</label>
-                    <input type="text" class="form-control" id="m_date" autocomplete="off" required>
+                    <label class="form-label" for="m_date">Сроки проведения</label>
+                    <input type="text" class="form-control form-control--date" id="m_date"
+                           placeholder="Выберите дату или период" autocomplete="off" required readonly>
+                    <span class="form-hint" id="m_year_hint"></span>
+                    <input type="hidden" id="m_year">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">ФИО</label>
-                    <input type="text" class="form-control" id="m_fio" list="dl_users" autocomplete="off" required>
+                    <input type="text" class="form-control" id="m_full_name" list="dl_users" autocomplete="off" required>
                     <datalist id="dl_users"></datalist>
                 </div>
-                {% if user_type == 'stud' %}
+                {% if user_type == 'student' %}
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">Группа</label>
                     <input type="text" class="form-control" id="m_group" list="dl_groups" autocomplete="off" required>
@@ -126,28 +133,81 @@
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">Дипломы</label>
-                    <input type="text" class="form-control" id="m_diploms">
+                    <input type="text" class="form-control" id="m_diplomas">
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">Награды</label>
                     <input type="text" class="form-control" id="m_awards">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Учебный год</label>
-                    <input type="text" class="form-control" id="m_year" list="dl_years" autocomplete="off"
-                           placeholder="XXXX-XXXX" required>
-                    <datalist id="dl_years"></datalist>
-                </div>
             </form>
         </div>
         <div class="modal__footer">
             <button type="button" class="btn btn--secondary" data-modal-close>Отмена</button>
-            <button type="button" class="btn btn--primary" onclick="saveEvent()">Сохранить</button>
+            <button type="button" class="btn btn--primary" onclick="saveParticipation()">Сохранить</button>
         </div>
     </div>
 </div>
 
-<!-- МОДАЛКА ОТЧЁТА -->
+{% if user_type == 'student' %}
+<div class="modal" id="mentorModal">
+    <div class="modal__overlay"></div>
+    <div class="modal__dialog">
+        <div class="modal__header">
+            <h5 class="modal__title">Участие наставника</h5>
+            <button type="button" class="modal__close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal__body">
+            <p class="form-hint" style="margin-bottom:12px;">
+                Данные скопированы из участия студента. Укажите дипломы и награды наставника.
+            </p>
+            <div class="form-warning" id="mentorDuplicateWarning" style="display:none;">
+                Возможно, у этого наставника уже есть участие в этом мероприятии.
+            </div>
+            <form id="mentorForm">
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Мероприятие</label>
+                    <input type="text" class="form-control" id="mentor_name" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label" for="mentor_description">Описание</label>
+                    <textarea class="form-control" id="mentor_description" rows="3"
+                              placeholder="Необязательно"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Уровень</label>
+                    <input type="text" class="form-control" id="mentor_level" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label" for="mentor_date">Сроки проведения</label>
+                    <input type="text" class="form-control form-control--date" id="mentor_date"
+                           placeholder="Выберите дату или период" autocomplete="off" required readonly>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">ФИО наставника</label>
+                    <input type="text" class="form-control" id="mentor_full_name" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Результат</label>
+                    <input type="text" class="form-control" id="mentor_result" required>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Дипломы</label>
+                    <input type="text" class="form-control" id="mentor_diplomas">
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label class="form-label">Награды</label>
+                    <input type="text" class="form-control" id="mentor_awards">
+                </div>
+            </form>
+        </div>
+        <div class="modal__footer">
+            <button type="button" class="btn btn--secondary" onclick="skipMentorParticipation()">Пропустить</button>
+            <button type="button" class="btn btn--primary" onclick="saveMentorParticipation()">Сохранить</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="modal" id="reportModal">
     <div class="modal__overlay"></div>
     <div class="modal__dialog">
@@ -164,9 +224,9 @@
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">Тип отчета</label>
                     <select class="form-select" id="repType">
-                        <option value="all">Все вместе (Пед + Студ)</option>
-                        <option value="ped">Только педагоги</option>
-                        <option value="stud">Только студенты</option>
+                        <option value="all">Все вместе (Педагоги + Студенты)</option>
+                        <option value="teacher">Только педагоги</option>
+                        <option value="student">Только студенты</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom:12px;">
@@ -197,9 +257,14 @@
 {% endblock %}
 
 {% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script>
     window.USER_TYPE = "{{ user_type }}";
-    window.API_BASE = "/api/uchastiya/" + window.USER_TYPE;
+    window.API_BASE = window.USER_TYPE === 'student'
+        ? '/api/participation/students'
+        : '/api/participation/teachers';
 </script>
-<script src="{{ url_for('static', filename='main.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+<script src="{{ url_for('static', filename='participation.js') }}"></script>
 {% endblock %}

@@ -2,7 +2,7 @@
 {% block title %}Список участников{% endblock %}
 {% block content %}
 
-<h1 class="page-title">Список участников</h1>
+<h1 class="page-title">Участники</h1>
 
 <div class="toolbar">
     <button type="button" class="btn btn--primary" onclick="openUserModal('add', null, 'teacher')">
@@ -75,7 +75,7 @@
                 <input type="hidden" id="userRole" value="teacher">
                 <div class="form-group" style="margin-bottom:12px;">
                     <label class="form-label">ФИО</label>
-                    <input type="text" class="form-control" id="m_fio" required
+                    <input type="text" class="form-control" id="m_full_name" required
                            placeholder="Иванов Иван Иванович">
                 </div>
                 <div class="form-group" id="groupField">
