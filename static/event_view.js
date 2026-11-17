@@ -61,10 +61,15 @@ function setEventDate(value) {
     if (!eventDatePicker) return;
 
     const period = parseEventPeriod(value);
+
     if (period.start && period.end) {
-        eventDatePicker.setDate([period.start, period.end], false);
+        eventDatePicker.setDate(
+            [period.start, period.end], false, 'Y-m-d'
+        );
     } else if (period.start) {
-        eventDatePicker.setDate([period.start], false);
+        eventDatePicker.setDate(
+            [period.start], false, 'Y-m-d'
+        );
     } else {
         eventDatePicker.clear(false);
     }

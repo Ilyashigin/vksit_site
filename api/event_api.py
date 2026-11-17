@@ -2,6 +2,7 @@ from flask import request, jsonify, Blueprint
 from models import db, Event, Level, Participation
 from api.date_utils import parse_and_format_event_period
 from api.participation_helpers import normalize_description
+from api.date_utils import academic_year_from_date
 
 event_bp = Blueprint('event_bp', __name__, url_prefix='/api/events')
 
@@ -38,7 +39,7 @@ def create_event():
     if not event_name or not str(event_name).strip():
         return jsonify({'error': 'Поле Название обязательно к заполнению'}), 400
 
-    stored_date, _, date_err = parse_and_format_event_period(event_date)
+    stored_date, event_date_obj, date_err = parse_and_format_event_period(event_date)
     if date_err:
         return jsonify({'error': date_err}), 400
 
@@ -56,6 +57,9 @@ def create_event():
         date=stored_date,
         level_id=level.id,
     ).first()
+
+
+
     if not event:
         event = Event(
             name=event_name,
@@ -69,7 +73,7 @@ def create_event():
         event.description = description
         db.session.commit()
 
-    return jsonify(_event_to_dict(event)), 200
+    return jsonify(_event_to_dict(event)), 201
 
 
 @event_bp.route('/<int:id>', methods=['PUT'])
@@ -83,7 +87,7 @@ def update_event(id):
     if not event_name or not str(event_name).strip():
         return jsonify({'error': 'Поле Название обязательно к заполнению'}), 400
 
-    stored_date, _, date_err = parse_and_format_event_period(event_date)
+    stored_date, event_date_obj, date_err = parse_and_format_event_period(event_date)
     if date_err:
         return jsonify({'error': date_err}), 400
 
@@ -100,6 +104,13 @@ def update_event(id):
     event.date = stored_date
     event.level_id = level.id
     event.description = normalize_description(data.get('description'))
+
+    year1, year2 = academic_year_from_date(event_date_obj)
+
+    for member in event.participations:
+        member.year1 = year1
+        member.year2 = year2
+
     db.session.commit()
 
     return jsonify(_event_to_dict(event)), 200
