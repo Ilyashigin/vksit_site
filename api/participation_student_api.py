@@ -9,7 +9,7 @@ from api.participation_helpers import (
     get_or_create_level,
     get_or_create_event,
     get_or_create_user,
-    build_result_text,
+    build_result_text, normalize_description,
 )
 
 participation_student_bp = Blueprint('participation_student_bp', __name__)
@@ -134,14 +134,17 @@ def update_student_participation(id):
 
     level = get_or_create_level(level_name)
     user = get_or_create_user(full_name, group=group)
-    event = get_or_create_event(
-        event_name, stored_date, level.id, data.get('description'),
-    )
+    event = participation.event
+    event.name = event_name
+    event.date = stored_date
+    event.level_id = level.id
+    event.description = normalize_description(data.get('description'))
     mentor = get_or_create_user(mentor_name)
 
     participation.result = build_result_text(result, diplomas, awards)
-    participation.year1 = year1
-    participation.year2 = year2
+    for member in event.participations:
+        member.year1 = year1
+        member.year2 = year2
     participation.event_id = event.id
     participation.user_id = user.id
     participation.mentor_id = mentor.id

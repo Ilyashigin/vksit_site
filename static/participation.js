@@ -104,10 +104,15 @@ function setPickerDate(picker, value) {
     if (!picker) return;
 
     const period = parseEventPeriod(value);
+
     if (period.start && period.end) {
-        picker.setDate([period.start, period.end], false);
+        picker.setDate(
+            [period.start, period.end], false, 'Y-m-d'
+        );
     } else if (period.start) {
-        picker.setDate([period.start], false);
+        picker.setDate(
+            [period.start], false, 'Y-m-d'
+        );
     } else {
         picker.clear(false);
     }

@@ -50,16 +50,6 @@ def academic_year_from_date(d):
 
 
 def validate_academic_year(year1, year2, allow_years):
-    if int(year1) not in allow_years:
-        return (
-            f'Учебный Год не может быть меньше {allow_years[0]} '
-            f'и больше {allow_years[-1]}'
-        ), 400
-    if int(year2) not in allow_years:
-        return (
-            f'Учебный Год не может быть меньше {allow_years[0]} '
-            f'и больше {allow_years[-1]}'
-        ), 400
     if (int(year2) - int(year1)) != 1:
         return 'Недопустимый учебный период', 400
     return None, None
